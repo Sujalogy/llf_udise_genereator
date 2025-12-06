@@ -18,7 +18,7 @@ import {
 const API_BASE = "https://kys.udiseplus.gov.in/webapp/api";
 const CHUNK_SIZE_PERCENT = 10;
 
-// Complete column mapping based on your JSON file
+// Complete column mapping
 const COLUMN_MAPPING = {
   "search-schools": {
     // udiseschCode: "udise_code",
@@ -117,12 +117,14 @@ const COLUMN_MAPPING = {
     profQual10: "total_bachelor_of_nursery_teacher_education",
   },
   enrollment: {
-    pp1B: "pre_primary_boy_1",
-    pp1G: "pre_primary_girl_1",
-    pp2B: "pre_primary_boy_2",
-    pp2G: "pre_primary_girl_2",
-    pp3B: "pre_primary_boy_3",
-    pp3G: "pre_primary_girl_3",
+    // Mapped Pre-Primary levels to specific names
+    pp1B: "nursery_boy",
+    pp1G: "nursery_girl",
+    pp2B: "lkg_boy",
+    pp2G: "lkg_girl",
+    pp3B: "ukg_boy",
+    pp3G: "ukg_girl",
+    
     pptB: "total_pre_primary_boy",
     pptG: "total_pre_primary_girl",
     c1B: "class_1_boy",
@@ -152,33 +154,31 @@ const COLUMN_MAPPING = {
 };
 
 function App() {
-  const [theme, setTheme] = useState("light"); // Default to light mode (Red/White)
+  const [theme, setTheme] = useState("light");
   const [years, setYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
   const [file, setFile] = useState(null);
   const [processing, setProcessing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false); // UI State for pause
+  const [isPaused, setIsPaused] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [errors, setErrors] = useState([]); // Kept for CSV export
+  const [errors, setErrors] = useState([]);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState([]);
   const [stats, setStats] = useState({ total: 0, success: 0, failed: 0 });
-  
+
   const fileInputRef = useRef(null);
-  const pausedRef = useRef(false); // Ref for immediate pause control in loops
-  const cancelRef = useRef(false); // Ref for immediate cancellation
-  const logsEndRef = useRef(null); // Ref for auto-scrolling logs
-  const hasFetchedYears = useRef(false); // Ref to prevent double fetching
+  const pausedRef = useRef(false);
+  const cancelRef = useRef(false);
+  const logsEndRef = useRef(null);
+  const hasFetchedYears = useRef(false);
 
   useEffect(() => {
-    // Only fetch if we haven't fetched yet
     if (!hasFetchedYears.current) {
       hasFetchedYears.current = true;
       fetchYears();
     }
   }, []);
 
-  // Effect to toggle class on the HTML root element
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === "dark") {
@@ -188,7 +188,6 @@ function App() {
     }
   }, [theme]);
 
-  // Auto-scroll logs
   useEffect(() => {
     if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -203,10 +202,7 @@ function App() {
   };
 
   const addError = (udiseCode, stage, errorMessage) => {
-    // Add to logs for display
     addLog(`✗ Failed ${udiseCode} [${stage}]: ${errorMessage}`, "error");
-    
-    // Add to errors for CSV export
     setErrors((prev) => [
       ...prev,
       {
@@ -221,12 +217,15 @@ function App() {
   const handlePauseResume = () => {
     pausedRef.current = !pausedRef.current;
     setIsPaused(pausedRef.current);
-    addLog(pausedRef.current ? "|| Process paused by user" : "▶ Process resumed by user", "info");
+    addLog(
+      pausedRef.current ? "|| Process paused by user" : "▶ Process resumed by user",
+      "info"
+    );
   };
 
   const handleCancel = () => {
     cancelRef.current = true;
-    pausedRef.current = false; // Ensure loop doesn't get stuck in pause while cancelling
+    pausedRef.current = false;
     setIsPaused(false);
     addLog("■ Cancelling process...", "error");
   };
@@ -240,14 +239,12 @@ function App() {
       if (data.status && data.data) {
         setYears(data.data);
         if (data.data.length > 0) {
-          // Explicitly convert to string to ensure type match with select value
           setSelectedYear(String(data.data[0].yearId));
         }
         addLog(`Loaded ${data.data.length} years`, "success");
       }
     } catch (error) {
       addLog(`Error fetching years: ${error.message}`, "error");
-      // Intentionally not calling addError here to avoid cluttering specific school errors
     }
   };
 
@@ -358,9 +355,7 @@ function App() {
             return;
           }
 
-          // DEDUPLICATION STEP: Remove duplicate UDISE codes
           data = [...new Set(data)];
-
           resolve(data);
         } catch (error) {
           reject(error);
@@ -416,8 +411,9 @@ function App() {
         ...transformData(schoolInfo, COLUMN_MAPPING["search-schools"]),
       };
 
-      // OVERRIDE: Enforce selected academic year in output
-      const selectedYearObj = years.find(y => String(y.yearId) === String(yearId));
+      const selectedYearObj = years.find(
+        (y) => String(y.yearId) === String(yearId)
+      );
       if (selectedYearObj) {
         result.ay = selectedYearObj.yearDesc;
       }
@@ -463,7 +459,6 @@ function App() {
         ).catch((e) => ({ error: e })),
       ]);
 
-      // Process responses with error handling
       const processResponse = async (res, name) => {
         if (res.error) {
           addError(udiseCode, name, res.error.message);
@@ -499,7 +494,6 @@ function App() {
         processResponse(statsRes, "Statistics"),
       ]);
 
-      // Merge profile data
       if (profile?.status && profile.data) {
         Object.assign(
           result,
@@ -509,7 +503,6 @@ function App() {
         addError(udiseCode, "Profile", "No data available");
       }
 
-      // Merge facility data
       if (facility?.status && facility.data) {
         Object.assign(
           result,
@@ -519,7 +512,6 @@ function App() {
         addError(udiseCode, "Facility", "No data available");
       }
 
-      // Merge report card data
       if (report?.status && report.data) {
         Object.assign(
           result,
@@ -529,42 +521,47 @@ function App() {
         addError(udiseCode, "Report Card", "No data available");
       }
 
-      // Process enrollment flags
-      const processEnrollment = (enrollData, flag) => {
+      // Process enrollment with DYNAMIC prefixing
+      const processEnrollment = (enrollData, flagType) => {
         if (enrollData?.status && enrollData.data) {
-          let enrollmentPrefix = null;
-
-          if (
-            enrollData.data.schEnrollmentYearDataDTOS &&
-            enrollData.data.schEnrollmentYearDataDTOS.length > 0 &&
-            enrollData.data.schEnrollmentYearDataDTOS[0].enrollmentName
-          ) {
-            const rawName =
-              enrollData.data.schEnrollmentYearDataDTOS[0].enrollmentName;
-            if (rawName && rawName.trim() !== "") {
-              enrollmentPrefix = rawName
-                .toLowerCase()
-                .replace(/\s+/g, "_")
-                .replace(/[^a-z0-9_]/g, "");
+          
+          // Helper to determine prefix based on row name
+          const getPrefix = (name) => {
+            const cleanName = name ? name.toLowerCase().trim() : "";
+            
+            if (flagType === "social") return "caste"; // Flag 1
+            if (flagType === "rte") return "rte"; // Flag 4
+            if (flagType === "age") return "age"; // Flag 3
+            
+            if (flagType === "minority") { // Flag 2
+               // Check for special groups to isolate
+               if (["bpl", "repeater", "cwsn"].includes(cleanName)) {
+                 return cleanName; // bpl_, repeater_, cwsn_
+               }
+               return "minority"; // Default for religions
             }
-          }
+            
+            return "other_grp";
+          };
 
-          if (!enrollmentPrefix) {
-            // addLog(`Skipping enrollment flag ${flag} for ${udiseCode}`, "info");
-            return;
-          }
+          // Handle Totals
+           if (enrollData.data.schEnrollmentYearDataTotal) {
+             let defaultPrefix = "other";
+             if (flagType === "social") defaultPrefix = "caste";
+             if (flagType === "age") defaultPrefix = "age";
+             if (flagType === "rte") defaultPrefix = "rte";
+             if (flagType === "minority") defaultPrefix = "minority";
 
-          if (enrollData.data.schEnrollmentYearDataTotal) {
-            const transformed = transformData(
+             const transformed = transformData(
               enrollData.data.schEnrollmentYearDataTotal,
               COLUMN_MAPPING["enrollment"]
             );
             Object.keys(transformed).forEach((key) => {
               if (key !== "enrollment_name") {
-                result[`${enrollmentPrefix}_${key}`] = transformed[key];
+                result[`${defaultPrefix}_${key}`] = transformed[key];
               }
             });
-          }
+           }
 
           if (enrollData.data.schEnrollmentYearDataDTOS) {
             enrollData.data.schEnrollmentYearDataDTOS.forEach((item, idx) => {
@@ -573,7 +570,6 @@ function App() {
                 COLUMN_MAPPING["enrollment"]
               );
 
-              // Get item specific name or fallback to index
               let itemName = item.enrollmentName
                 ? item.enrollmentName
                     .toLowerCase()
@@ -581,25 +577,33 @@ function App() {
                     .replace(/[^a-z0-9_]/g, "")
                 : `${idx + 1}`;
 
+              // Determine prefix dynamically
+              const prefix = getPrefix(itemName);
+              
+              // Prevent redundant names like bpl_bpl_total
+              let finalKeyPrefix = `${prefix}_${itemName}`;
+              if (prefix === itemName) {
+                 finalKeyPrefix = prefix; 
+              }
+
               Object.keys(transformed).forEach((key) => {
                 if (key !== "enrollment_name") {
-                  result[`${enrollmentPrefix}_${itemName}_${key}`] =
+                  result[`${finalKeyPrefix}_${key}`] =
                     transformed[key];
                 }
               });
             });
           }
-        } else if (enrollData) {
-          addError(udiseCode, `Enrollment Flag ${flag}`, "No data available");
         }
       };
-      processEnrollment(enroll1, 1);
-      processEnrollment(enroll2, 2);
-      processEnrollment(enroll3, 3);
-      processEnrollment(enroll4, 4);
-      processEnrollment(enroll5, 5);
 
-      // Merge statistics
+      // APPLY NEW NAMING CONVENTION HERE
+      processEnrollment(enroll1, "social");    // Caste
+      processEnrollment(enroll2, "minority");  // Religion (split BPL/CWSN)
+      processEnrollment(enroll3, "age");       // Age
+      processEnrollment(enroll4, "rte");       // RTE
+      processEnrollment(enroll5, "other_grp"); // Fallback
+
       if (stats?.status && stats.data) {
         result.totalBoyStudents = stats.data.totalBoy;
         result.totalGirlStudents = stats.data.totalGirl;
@@ -630,12 +634,10 @@ function App() {
     let failCount = 0;
 
     for (let i = 0; i < codes.length; i++) {
-      // Check for cancellation
       if (cancelRef.current) {
         return [];
       }
 
-      // Check for pause
       while (pausedRef.current) {
         if (cancelRef.current) return [];
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -685,7 +687,7 @@ function App() {
     setIsPaused(false);
     pausedRef.current = false;
     cancelRef.current = false;
-    
+
     setLogs([]);
     setErrors([]);
     setProgress(0);
@@ -717,8 +719,8 @@ function App() {
       const allResults = [];
       for (let i = 0; i < chunks.length; i++) {
         if (cancelRef.current) {
-            addLog("■ Processing Cancelled by User", "error");
-            break;
+          addLog("■ Processing Cancelled by User", "error");
+          break;
         }
 
         const chunkResults = await processChunk(
@@ -747,13 +749,18 @@ function App() {
 
   const getTimestamp = () => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(now.getDate()).padStart(2, "0")}_${String(
+      now.getHours()
+    ).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}-${String(
+      now.getSeconds()
+    ).padStart(2, "0")}`;
   };
 
   const getSelectedYearDesc = () => {
-    // Find the year object that matches the selectedYear ID
-    // We compare as strings to avoid type mismatch issues
-    const year = years.find(y => String(y.yearId) === String(selectedYear));
+    const year = years.find((y) => String(y.yearId) === String(selectedYear));
     return year ? year.yearDesc : selectedYear;
   };
 
@@ -804,7 +811,6 @@ function App() {
       } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
     >
       <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
@@ -816,7 +822,6 @@ function App() {
             </p>
           </div>
 
-          {/* Theme Toggle Radio */}
           <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
               Theme:
@@ -856,7 +861,6 @@ function App() {
           </div>
         </div>
 
-        {/* Controls */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
@@ -903,46 +907,48 @@ function App() {
             </div>
           </div>
 
-          {/* Dynamic Buttons: Processing Control vs Start Button */}
           {processing ? (
             <div className="flex gap-3">
-                <button
-                    onClick={handlePauseResume}
-                    className={`flex-1 ${isPaused ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600'} text-white text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm`}
-                >
-                    {isPaused ? (
-                        <>
-                            <Play className="w-4 h-4" />
-                            Resume
-                        </>
-                    ) : (
-                        <>
-                            <Pause className="w-4 h-4" />
-                            Pause
-                        </>
-                    )}
-                </button>
-                <button
-                    onClick={handleCancel}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm"
-                >
-                    <Square className="w-4 h-4" />
-                    Stop
-                </button>
+              <button
+                onClick={handlePauseResume}
+                className={`flex-1 ${
+                  isPaused
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-amber-500 hover:bg-amber-600"
+                } text-white text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm`}
+              >
+                {isPaused ? (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <Pause className="w-4 h-4" />
+                    Pause
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Square className="w-4 h-4" />
+                Stop
+              </button>
             </div>
           ) : (
-              <button
-                  onClick={handleFileUpload}
-                  disabled={!file || !selectedYear || processing}
-                  className="w-full bg-[#e22a3f] hover:bg-[#c92538] dark:bg-blue-600 dark:hover:bg-blue-700 disabled:bg-gray-400 disabled:dark:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
-              >
-                  <Database className="w-5 h-5" />
-                  Start Processing
-              </button>
+            <button
+              onClick={handleFileUpload}
+              disabled={!file || !selectedYear || processing}
+              className="w-full bg-[#e22a3f] hover:bg-[#c92538] dark:bg-blue-600 dark:hover:bg-blue-700 disabled:bg-gray-400 disabled:dark:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Database className="w-5 h-5" />
+              Start Processing
+            </button>
           )}
         </div>
 
-        {/* Stats */}
         {(processing || stats.total > 0) && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
             <div className="grid grid-cols-4 gap-4 mb-4">
@@ -982,20 +988,23 @@ function App() {
 
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
               <div
-                className={`h-full transition-all duration-300 ${isPaused ? 'bg-yellow-500' : 'bg-gradient-to-r from-[#e22a3f] to-orange-500 dark:from-blue-500 dark:to-purple-500'}`}
+                className={`h-full transition-all duration-300 ${
+                  isPaused
+                    ? "bg-yellow-500"
+                    : "bg-gradient-to-r from-[#e22a3f] to-orange-500 dark:from-blue-500 dark:to-purple-500"
+                }`}
                 style={{ width: `${progress}%` }}
               />
             </div>
             {isPaused && (
-                <div className="text-center text-xs text-yellow-600 mt-1 font-semibold">
-                    PAUSED
-                </div>
+              <div className="text-center text-xs text-yellow-600 mt-1 font-semibold">
+                PAUSED
+              </div>
             )}
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* System Activity Log (Merged Logs & Errors) */}
           <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
@@ -1042,7 +1051,6 @@ function App() {
             </div>
           </div>
 
-          {/* Results */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
             <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
