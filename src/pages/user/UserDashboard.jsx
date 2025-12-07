@@ -1,16 +1,18 @@
 // ============================================================================
 // --- FILE: src/pages/user/UserDashboard.jsx ---
 // ============================================================================
-import { useEffect, useMemo } from "react";
-import { LayoutGrid, Menu, Loader2, ChevronRight, Check, CheckCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { LayoutGrid, Menu, Loader2, ChevronRight, Check, CheckCircle, BarChart3 } from "lucide-react";
 import apiClient from "../../api/apiClient";
 import CONFIG from "../../api/config";
 import DataTable from "../../components/tables/DataTable";
 import ACTIONS from "../../context/actions";
 import { useStore } from "../../context/StoreContext";
+import DashboardStatsView from "../admin/DashboardStatsView";
 
 const UserDashboard = () => {
   const { state, dispatch } = useStore();
+  const [activeTab, setActiveTab] = useState("table"); // "table" or "statistics"
   
   // 1. Initial Load: Fetch Filters
   useEffect(() => {
@@ -95,6 +97,40 @@ const UserDashboard = () => {
             <p className="text-xs text-gray-500 truncate">{state.selectedState}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
+            {/* Select All Districts Option */}
+            {(() => {
+              const allDistricts = state.filters[state.selectedState] || [];
+              const allSelected = allDistricts.length > 0 && allDistricts.every(dist => state.selectedDistricts.includes(dist));
+              return (
+                <div 
+                  onClick={() => {
+                    if (allSelected) {
+                      // Deselect all
+                      allDistricts.forEach(dist => {
+                        if (state.selectedDistricts.includes(dist)) {
+                          dispatch({ type: ACTIONS.TOGGLE_DISTRICT, payload: dist });
+                        }
+                      });
+                    } else {
+                      // Select all
+                      allDistricts.forEach(dist => {
+                        if (!state.selectedDistricts.includes(dist)) {
+                          dispatch({ type: ACTIONS.TOGGLE_DISTRICT, payload: dist });
+                        }
+                      });
+                    }
+                  }}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer select-none transition-colors border-b-2 border-gray-300 dark:border-gray-700 mb-2 ${allSelected ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 font-medium'}`}
+                >
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${allSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-400 bg-transparent'}`}>
+                    {allSelected && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  All Districts ({allDistricts.length})
+                </div>
+              );
+            })()}
+            
+            {/* Individual District Checkboxes */}
             {state.filters[state.selectedState]?.map(dist => {
               const isSelected = state.selectedDistricts.includes(dist);
               return (
@@ -121,16 +157,63 @@ const UserDashboard = () => {
               </div>
             </div>
           </div>
-          {activeData.length > 0 && <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium border border-green-100 dark:border-green-800"><CheckCircle className="w-3 h-3" />{activeData.length} Records</div>}
+          
+          <div className="flex items-center gap-3">
+            {activeData.length > 0 && activeTab === "table" && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium border border-green-100 dark:border-green-800">
+                <CheckCircle className="w-3 h-3" />
+                {activeData.length} Records
+              </div>
+            )}
+            
+            {/* Tab Switcher */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab("table")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  activeTab === "table"
+                    ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Table View
+              </button>
+              <button
+                onClick={() => setActiveTab("statistics")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  activeTab === "statistics"
+                    ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                Statistics
+              </button>
+            </div>
+          </div>
         </header>
 
-        <div className="flex-1 p-6 overflow-hidden">
-          {state.loading ? (
-            <div className="h-full flex flex-col items-center justify-center text-blue-600 dark:text-blue-400"><Loader2 className="w-10 h-10 animate-spin mb-4" /><p className="font-medium animate-pulse">Retrieving Data...</p></div>
-          ) : !state.selectedState ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400"><LayoutGrid className="w-20 h-20 opacity-20 mb-4" /><h3 className="text-lg font-medium text-gray-600 dark:text-gray-300">No Location Selected</h3><p className="text-sm">Please select a State from the sidebar.</p></div>
+        <div className="flex-1 overflow-hidden">
+          {activeTab === "table" ? (
+            <div className="h-full p-6">
+              {state.loading ? (
+                <div className="h-full flex flex-col items-center justify-center text-blue-600 dark:text-blue-400">
+                  <Loader2 className="w-10 h-10 animate-spin mb-4" />
+                  <p className="font-medium animate-pulse">Retrieving Data...</p>
+                </div>
+              ) : !state.selectedState ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                  <LayoutGrid className="w-20 h-20 opacity-20 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-600 dark:text-gray-300">No Location Selected</h3>
+                  <p className="text-sm">Please select a State from the sidebar.</p>
+                </div>
+              ) : (
+                <DataTable data={activeData} />
+              )}
+            </div>
           ) : (
-            <DataTable data={activeData} />
+            <DashboardStatsView />
           )}
         </div>
       </main>

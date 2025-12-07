@@ -1,5 +1,5 @@
 // ============================================================================
-// --- FILE: src/pages/admin/AdminDashboard.jsx (MODERNIZED) ---
+// --- FILE: src/pages/admin/AdminDashboard.jsx (FIXED SCROLL) ---
 // ============================================================================
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
@@ -285,7 +285,6 @@ const DataSyncView = () => {
       addLog(`✅ Successfully extracted ${codes.length.toLocaleString('en-IN')} UDISE codes`, "success");
       addLog(`🔍 Checking for existing records in database...`, "info");
 
-      // Check for existing codes
       const existingRes = await apiClient.post(`${CONFIG.API_BACKEND}/check-existing`, { codes });
       const existingCodes = new Set(existingRes.existing || []);
       const duplicates = codes.filter(c => existingCodes.has(c)).length;
@@ -402,7 +401,7 @@ const DataSyncView = () => {
         isProcessing={status === "syncing"}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
         {/* LEFT PANEL - Configuration */}
         <div className="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-fit flex flex-col">
           <div className="flex items-center gap-2 mb-6">
@@ -460,7 +459,6 @@ const DataSyncView = () => {
             <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
               {status === "syncing" ? (
                 <div className="space-y-4">
-                  {/* Live Stats during sync */}
                   <div className="grid grid-cols-2 gap-3">
                     <StatBadge
                       icon={CheckCircle2}
@@ -507,7 +505,6 @@ const DataSyncView = () => {
                 </div>
               ) : status === "ready_to_sync" ? (
                 <div className="space-y-3">
-                  {/* Pre-sync stats */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <StatBadge
                       icon={TrendingUp}
@@ -557,10 +554,9 @@ const DataSyncView = () => {
           </div>
         </div>
 
-        {/* RIGHT PANEL - System Stream */}
-        <div className="lg:col-span-2 bg-gray-950 rounded-xl shadow-inner flex flex-col h-[80vh] border border-gray-800 overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+        {/* RIGHT PANEL - System Stream - FIXED HEIGHT */}
+        <div className="lg:col-span-2 bg-gray-950 rounded-xl shadow-inner flex flex-col max-h-[calc(100vh-280px)] border border-gray-800 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-1.5 bg-blue-500/20 rounded">
                 <Terminal className="w-4 h-4 text-blue-400" />
@@ -572,7 +568,6 @@ const DataSyncView = () => {
             
             {(status === "analyzing" || status === "syncing") && (
               <div className="flex items-center gap-4">
-                {/* Progress indicator */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400 font-mono">
                     {progress.toFixed(1)}%
@@ -588,7 +583,6 @@ const DataSyncView = () => {
             )}
           </div>
 
-          {/* Logs Container */}
           <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
             {logs.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-gray-600">
@@ -607,7 +601,6 @@ const DataSyncView = () => {
   );
 };
 
-// Rest of the code remains the same (DataExplorerView, AdminDashboard, etc.)
 const DataExplorerView = () => {
   const [activeExplorerTab, setActiveExplorerTab] = useState("table");
   const [refreshing, setRefreshing] = useState(false);
@@ -699,7 +692,7 @@ const AdminDashboard = () => {
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden relative">
       {activeTab === "explorer" && (
-        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 z-10 flex flex-col">
+        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 z-10 flex flex-col overflow-hidden">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-4 py-2 border-b border-blue-200 dark:border-blue-800 flex justify-between items-center flex-shrink-0">
             <div className="flex items-center gap-2">
               <LayoutTemplate className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -720,7 +713,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      <div className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6 overflow-hidden flex flex-col h-full">
+      <div className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
           <div>
@@ -733,7 +726,7 @@ const AdminDashboard = () => {
           </div>
           
           {/* Modern Tab Navigation */}
-          <div className="bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 flex shadow-sm">
+          <div className="bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 flex shadow-sm flex-shrink-0">
             {[
               { id: "sync", icon: Database, label: "Data Sync" },
               { id: "dashboard", icon: Activity, label: "Dashboard" },
@@ -759,7 +752,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-hidden h-full animate-in fade-in slide-in-from-bottom-2 duration-300 relative">
+        <div className="flex-1 min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div
             className={`h-full w-full ${
               activeTab === "sync" ? "block" : "hidden"
@@ -767,8 +760,16 @@ const AdminDashboard = () => {
           >
             <DataSyncView />
           </div>
-          {activeTab === "dashboard" && <DashboardStatsView />}
-          {activeTab === "users" && <UserListView />}
+          {activeTab === "dashboard" && (
+            <div className="h-full overflow-hidden">
+              <DashboardStatsView />
+            </div>
+          )}
+          {activeTab === "users" && (
+            <div className="h-full overflow-hidden">
+              <UserListView />
+            </div>
+          )}
         </div>
       </div>
     </div>
