@@ -13,6 +13,9 @@ import {
   Square,
   Pause,
   FileSpreadsheet,
+  PieChart,
+  BarChart3,
+  Table2,
 } from "lucide-react";
 import apiClient from "../../api/apiClient";
 import { CONFIG } from "../../api/config";
@@ -303,12 +306,16 @@ const DataSyncView = () => {
 
             if (flagType === "other") {
               // Flag 5: RTE, BPL, Aadhaar, Repeater, CWSN
-              if (cleanName.includes("rte") || cleanName.includes("right to education")) return "rte";
+              if (
+                cleanName.includes("rte") ||
+                cleanName.includes("right to education")
+              )
+                return "rte";
               if (cleanName.includes("bpl")) return "bpl";
               if (cleanName.includes("aadhaar")) return "aadhaar";
               if (cleanName.includes("repeater")) return "repeater";
               if (cleanName.includes("cwsn")) return "cwsn";
-              
+
               return "other_grp";
             }
 
@@ -370,11 +377,11 @@ const DataSyncView = () => {
       };
 
       // APPLY ENROLLMENT PROCESSING WITH CORRECT FLAGS
-      processEnrollment(enroll1, "social");    // Flag 1: Caste (General, SC, ST, OBC)
-      processEnrollment(enroll2, "minority");  // Flag 2: Religions (Muslim, Christian, Sikh, Buddhist, Jain, Parsi)
-      processEnrollment(enroll3, "age");       // Flag 3: Age groups
-      processEnrollment(enroll4, "ews");       // Flag 4: EWS (Economically Weaker Section)
-      processEnrollment(enroll5, "other");     // Flag 5: RTE + Others (BPL, Aadhaar, Repeater, CWSN)
+      processEnrollment(enroll1, "social"); // Flag 1: Caste (General, SC, ST, OBC)
+      processEnrollment(enroll2, "minority"); // Flag 2: Religions (Muslim, Christian, Sikh, Buddhist, Jain, Parsi)
+      processEnrollment(enroll3, "age"); // Flag 3: Age groups
+      processEnrollment(enroll4, "ews"); // Flag 4: EWS (Economically Weaker Section)
+      processEnrollment(enroll5, "other"); // Flag 5: RTE + Others (BPL, Aadhaar, Repeater, CWSN)
 
       if (stats?.status && stats.data) {
         result.totalBoyStudents = stats.data.totalBoy;
@@ -616,32 +623,104 @@ const DataSyncView = () => {
   );
 };
 
+const DataExplorerView = () => {
+  const [activeExplorerTab, setActiveExplorerTab] = useState("table");
+
+  const explorerTabs = [
+    { id: "table", icon: Table2, label: "Table View" },
+    { id: "charts", icon: BarChart3, label: "Analytics" },
+    { id: "summary", icon: PieChart, label: "Summary" },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col h-full">
+      {/* Explorer Tabs */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+        <div className="flex items-center gap-1">
+          {explorerTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveExplorerTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeExplorerTab === tab.id
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Explorer Content */}
+      <div className="flex-1 overflow-hidden">
+        {activeExplorerTab === "table" && <UserDashboard />}
+        {activeExplorerTab === "charts" && (
+          <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <div className="text-center">
+              <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Analytics Dashboard
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Visual analytics and charts coming soon
+              </p>
+            </div>
+          </div>
+        )}
+        {activeExplorerTab === "summary" && (
+          <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <div className="text-center">
+              <PieChart className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Summary Reports
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Aggregated summaries and reports coming soon
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- Main Admin Dashboard ---
 const AdminDashboard = () => {
   const { state, dispatch } = useStore();
   const activeTab = state.adminTab;
 
+  // If viewing Data Explorer
   if (activeTab === "explorer") {
     return (
       <div className="flex-1 flex flex-col h-[calc(100vh-64px)]">
-        <div className="bg-amber-50 dark:bg-amber-900/20 px-6 py-2 border-b border-amber-200 dark:border-amber-800 flex justify-between items-center">
-          <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
-            <Users className="w-4 h-4" /> Viewing as Data Explorer
-          </span>
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-6 py-3 border-b border-blue-200 dark:border-blue-800 flex justify-between items-center">
+          <div>
+            <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide flex items-center gap-2">
+              <LayoutTemplate className="w-4 h-4" /> Data Explorer Mode
+            </span>
+            <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5">
+              Browse and analyze school data with advanced filtering
+            </p>
+          </div>
           <button
             onClick={() =>
               dispatch({ type: ACTIONS.SET_ADMIN_TAB, payload: "sync" })
             }
-            className="text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-3 py-1 rounded shadow-sm hover:bg-gray-50 transition-colors"
+            className="text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
           >
-            Exit Explorer Mode
+            Back to Admin Console
           </button>
         </div>
-        <UserDashboard />
+        <DataExplorerView />
       </div>
     );
   }
 
+  // Main Admin Console
   return (
     <div className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6 overflow-hidden flex flex-col h-[calc(100vh-64px)]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
@@ -650,7 +729,7 @@ const AdminDashboard = () => {
             Admin Console
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Manage data synchronization and users.
+            Manage data synchronization, users, and system settings
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700 flex shadow-sm">

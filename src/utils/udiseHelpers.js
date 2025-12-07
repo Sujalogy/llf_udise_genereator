@@ -1,0 +1,163 @@
+// src/utils/udiseHelpers.js
+
+export const COLUMN_MAPPING = {
+  "search-schools": {
+    schoolName: "school_name",
+    schoolId: "school_id",
+    schMgmtDesc: "school_management",
+    schoolStatusName: "is_operational",
+    stateName: "state",
+    districtName: "district",
+    blockName: "block",
+    clusterName: "cluster",
+    villageName: "village",
+    schCatDesc: "school_category",
+    schLocDesc: "school_location",
+    schTypeDesc: "school_type",
+    yearDesc: "ay",
+    latitude: "lati",
+    longitude: "long",
+  },
+  profile: {
+    headMasterName: "head_master_name",
+    mediumOfInstrName1: "medium_of_instruction_1",
+    mediumOfInstrName2: "medium_of_instruction_2",
+    mediumOfInstrName3: "medium_of_instruction_3",
+    mediumOfInstrName4: "medium_of_instruction_4",
+    minorityYnDesc: "is_minority_school",
+    anganwadiYnDesc: "has_anganwadi",
+    anganwadiStuB: "anganwadi_boy_students",
+    anganwadiStuG: "anganwadi_girl_students",
+    anganwadiTchTrained: "anganwadi_teachers_trained",
+    noInspect: "no_academic_inspection",
+    noVisitCrc: "no_visit_crc",
+    cceYnDesc: "is_cce_implemented",
+    instructionalDays: "instructional_days",
+    noVisitBrc: "no_visit_brc",
+    noVisitDis: "no_vis_dist_st_officers",
+    smcYnDesc: "is_sch_manag_comm",
+    smdcYnDesc: "is_sch_dev_manag_comm",
+    suppMatRecdYnDesc: "received_supplementary_materials",
+    spltrgYnDesc: "received_special_training",
+    approachRoadYnDesc: "has_approach_road",
+    txtbkPriYnDesc: "received_textbooks_primary",
+    txtbkUprYnDesc: "received_textbooks_upper_primary",
+    shiftSchYnDesc: "is_this_shift_school",
+  },
+  facility: {
+    bldStatus: "building_status",
+    bldBlkTot: "total_building_blocks",
+    bndrywallType: "boundary_wall_type",
+    clsrmsInst: "total_classrooms_in_use",
+    othrooms: "other_rooms",
+    clsrmsGd: "good_condition_classrooms",
+    handwashYnDesc: "has_handwashing_facility",
+    toiletb: "total_toilets_boys",
+    toiletg: "total_toilets_girls",
+    urinalsb: "total_urinals_boys",
+    urinalsg: "total_urinals_girls",
+    drinkWaterYnDesc: "has_drinking_water_facility",
+    electricityYnDesc: "has_electricity",
+    solarpanelYnDesc: "has_solar_panel",
+    libraryYnDesc: "has_library",
+    playgroundYnDesc: "has_playground",
+    medchkYnDesc: "has_medical_checkup",
+    integratedLabYn: "has_integrated_lab",
+    internetYnDesc: "has_internet",
+    rainHarvestYnDesc: "has_rainwater_harvesting",
+  },
+  "report-card": {
+    lowClass: "lowest_class",
+    highClass: "highest_class",
+    tchReg: "total_regular_teachers",
+    tchCont: "total_contract_teachers",
+    tchPart: "total_part_time_teachers",
+    totMale: "total_male_teachers",
+    totFemale: "total_female_teachers",
+    totalTeachers: "total_teachers",
+    tchAbove55: "teachers_above_55_years",
+    totTchBelowGraduate: "total_teachers_below_graduate",
+    totTchGraduateAbove: "total_teachers_graduate_above",
+    totTchPgraduateAbove: "total_teachers_postgraduate_above",
+    tchInvlovedNonTchAssign: "teachers_involved_non_teaching_assignments",
+    tchRecvdServiceTrng: "teachers_received_service_training",
+    partTimeInstructors: "part_time_instructors",
+    ftbPr: "total_free_text_book_primary",
+    ftbUpr: "total_free_text_book_upper_primary",
+    totalGrant: "total_grant_received",
+    totalExpediture: "total_expenditure",
+    profQual1: "total_diploma_or_certificate_basic_training",
+    profQual2: "total_bachelor_of_elementary_education",
+    profQual3: "total_bachelor_of_education",
+    profQual4: "total_master_of_education_and_above",
+    profQual5: "total_other_qualifications",
+    profQual6: "total_no_professional_qualification",
+    profQual7: "total_diploma_degree_in_special_education",
+    profQual8: "total_diploma_in_nursery_teacher_education",
+    profQual10: "total_bachelor_of_nursery_teacher_education",
+  },
+  enrollment: {
+    pp1B: "nursery_boy",
+    pp1G: "nursery_girl",
+    pp2B: "lkg_boy",
+    pp2G: "lkg_girl",
+    pp3B: "ukg_boy",
+    pp3G: "ukg_girl",
+    pptB: "total_pre_primary_boy",
+    pptG: "total_pre_primary_girl",
+    c1B: "class_1_boy",
+    c1G: "class_1_girl",
+    c2B: "class_2_boy",
+    c2G: "class_2_girl",
+    c3B: "class_3_boy",
+    c3G: "class_3_girl",
+    rowBoyTotal: "total_boy",
+    rowGirlTotal: "total_girl",
+    rowTotal: "total",
+    colPryBoyTot: "total_primary_boy",
+    colPryGirlTot: "total_primary_girl",
+    colPryBoyGirlTot: "total_primary_boy_girl",
+    col1BoyTot: "total_class_1_boy",
+    col1GirlTot: "total_class_1_girl",
+    col1BoyGirlTot: "total_class_1_boy_girl",
+    col2BoyTot: "total_class_2_boy",
+    col2GirlTot: "total_class_2_girl",
+    col2BoyGirlTot: "total_class_2_boy_girl",
+    col3BoyTot: "total_class_3_boy",
+    col3GirlTot: "total_class_3_girl",
+    col3BoyGirlTot: "total_class_3_boy_girl",
+    finalTotal: "grand_total",
+    enrollmentName: "enrollment_name",
+  },
+};
+
+export const transformData = (data, mapping) => {
+  const transformed = {};
+  Object.keys(mapping).forEach((key) => {
+    if (data[key] !== undefined && data[key] !== null) {
+      transformed[mapping[key]] = data[key];
+    }
+  });
+  return transformed;
+};
+
+// Helper to determine enrollment prefix (The complex logic from your original file)
+export const getEnrollmentPrefix = (name, flagType) => {
+  const cleanName = name ? name.toLowerCase().trim() : "";
+  if (flagType === "social") return "caste";
+  if (flagType === "age") return "age";
+  if (flagType === "ews") return "ews";
+  if (flagType === "rte") return "rte";
+  if (flagType === "minority") return "minority";
+
+  if (flagType === "other") {
+    if (cleanName.includes("rte") || cleanName.includes("right to education"))
+      return "rte";
+    if (cleanName.includes("bpl")) return "bpl";
+    if (cleanName.includes("aadhaar")) return "aadhaar";
+    if (cleanName.includes("repeater")) return "repeater";
+    if (cleanName.includes("cwsn")) return "cwsn";
+    return "other_grp";
+  }
+  return "other_grp";
+};
