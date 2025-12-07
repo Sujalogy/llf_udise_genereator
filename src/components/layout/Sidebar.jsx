@@ -2,7 +2,7 @@ import React from 'react';
 import { LayoutGrid, ChevronRight, Check } from "lucide-react";
 // Adjust these import paths based on your actual folder structure
 import { useStore } from '../../context/StoreContext';
-import { ACTIONS } from '../../context/actions';
+import ACTIONS from '../../context/actions';
 
 export default function Sidebar() {
   const { state, dispatch } = useStore();

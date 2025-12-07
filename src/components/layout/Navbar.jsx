@@ -1,7 +1,7 @@
 import React from 'react';
 import { Database, LogOut, Sun, Moon } from "lucide-react";
 import { useStore } from '../../context/StoreContext'; 
-import { ACTIONS } from '../../context/actions'; 
+import ACTIONS from '../../context/actions'; 
 
 export default function Navbar() {
   const { state, dispatch } = useStore();

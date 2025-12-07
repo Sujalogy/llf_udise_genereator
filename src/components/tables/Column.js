@@ -1,6 +1,8 @@
+// ============================================================================
+// --- FILE: src/components/tables/Column.js ---
+// ============================================================================
 export const COLUMN_MAPPING = {
   "search-schools": {
-    udiseschCode: "udise_code", // Uncommented to ensure it appears
     schoolName: "school_name",
     schoolId: "school_id",
     schMgmtDesc: "school_management",
@@ -96,36 +98,50 @@ export const COLUMN_MAPPING = {
     profQual10: "total_bachelor_of_nursery_teacher_education",
   },
   enrollment: {
-    pp1B: "nursery_boy",
-    pp1G: "nursery_girl",
-    pp2B: "lkg_boy",
-    pp2G: "lkg_girl",
-    pp3B: "ukg_boy",
-    pp3G: "ukg_girl",
+    // These keys map the API keys (left) to Base keys (right).
+    // The AdminDashboard automatically prepends (e.g. caste_, minority_) to the Base key.
     
+    // Pre-Primary
+    pp1B: "pre_primary_boy_1",
+    pp1G: "pre_primary_girl_1",
+    pp2B: "pre_primary_boy_2",
+    pp2G: "pre_primary_girl_2",
+    pp3B: "pre_primary_boy_3",
+    pp3G: "pre_primary_girl_3",
+    
+    // Totals
     pptB: "total_pre_primary_boy",
     pptG: "total_pre_primary_girl",
+    
+    // Classes 1-3 (Pattern continues for others)
     c1B: "class_1_boy",
     c1G: "class_1_girl",
     c2B: "class_2_boy",
     c2G: "class_2_girl",
     c3B: "class_3_boy",
     c3G: "class_3_girl",
+    
+    // Matrix Totals
     rowBoyTotal: "total_boy",
     rowGirlTotal: "total_girl",
     rowTotal: "total",
+    
     colPryBoyTot: "total_primary_boy",
     colPryGirlTot: "total_primary_girl",
     colPryBoyGirlTot: "total_primary_boy_girl",
+    
     col1BoyTot: "total_class_1_boy",
     col1GirlTot: "total_class_1_girl",
     col1BoyGirlTot: "total_class_1_boy_girl",
+    
     col2BoyTot: "total_class_2_boy",
     col2GirlTot: "total_class_2_girl",
     col2BoyGirlTot: "total_class_2_boy_girl",
+    
     col3BoyTot: "total_class_3_boy",
     col3GirlTot: "total_class_3_girl",
     col3BoyGirlTot: "total_class_3_boy_girl",
+    
     finalTotal: "grand_total",
     enrollmentName: "enrollment_name",
   },

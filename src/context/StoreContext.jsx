@@ -9,8 +9,8 @@ const initialState = {
   theme: 'light',
   
   // --- Cache Layer (Reduces API Load) ---
-  filters: {}, // Stores State -> District mapping
-  dataCache: {}, // Stores table data by key "State_District1-District2"
+  filters: {}, 
+  dataCache: {}, 
   
   // --- User Selection ---
   selectedState: null,
@@ -20,6 +20,7 @@ const initialState = {
   loading: false,
   error: null,
   sidebarOpen: true,
+  adminTab: 'sync', // 'sync' | 'users' | 'explorer'
 };
 
 function appReducer(state, action) {
@@ -36,7 +37,7 @@ function appReducer(state, action) {
       return { 
         ...state, 
         selectedState: action.payload, 
-        selectedDistricts: [], // Clear districts when state changes
+        selectedDistricts: [], 
       };
     case ACTIONS.TOGGLE_DISTRICT:
       const district = action.payload;
@@ -46,7 +47,6 @@ function appReducer(state, action) {
         : [...current, district];
       return { ...state, selectedDistricts: updated };
     case ACTIONS.CACHE_DATA:
-      // Store data in cache to avoid refetching
       return { 
         ...state, 
         loading: false,
@@ -58,6 +58,8 @@ function appReducer(state, action) {
       return { ...state, loading: false, error: action.payload };
     case ACTIONS.TOGGLE_SIDEBAR:
       return { ...state, sidebarOpen: !state.sidebarOpen };
+    case ACTIONS.SET_ADMIN_TAB:
+      return { ...state, adminTab: action.payload };
     default:
       return state;
   }
@@ -68,7 +70,6 @@ const AppContext = createContext();
 const StoreProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   
-  // Persist Theme
   useEffect(() => {
     const root = window.document.documentElement;
     state.theme === "dark" ? root.classList.add("dark") : root.classList.remove("dark");
