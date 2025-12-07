@@ -15,13 +15,13 @@ const AppShell = () => {
     return <LoginPage />;
   }
 
-  // 2. Main Layout
+  // 2. Check for Admin Privileges (Includes super_admin)
+  const isAdmin = state.user.role === 'super_admin';
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors font-sans text-gray-900 dark:text-gray-100 flex flex-col">
       <Navbar />
-      
-      {/* 3. Role Based Routing */}
-      {state.user.role === 'admin' ? (
+      {isAdmin ? (
         <AdminDashboard />
       ) : (
         <UserDashboard />

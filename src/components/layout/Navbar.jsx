@@ -1,13 +1,13 @@
-import React from 'react';
+import React from "react";
 import { Database, LogOut, Sun, Moon } from "lucide-react";
-import { useStore } from '../../context/StoreContext'; 
-import ACTIONS from '../../context/actions'; 
+import { useStore } from "../../context/StoreContext";
+import ACTIONS from "../../context/actions";
 
 export default function Navbar() {
   const { state, dispatch } = useStore();
 
   const toggleTheme = () => {
-    const newTheme = state.theme === 'light' ? 'dark' : 'light';
+    const newTheme = state.theme === "light" ? "dark" : "light";
     dispatch({ type: ACTIONS.SET_THEME, payload: newTheme });
   };
 
@@ -27,7 +27,10 @@ export default function Navbar() {
             UDISE Portal
           </h1>
           <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">
-            {state.user?.role === 'admin' ? 'Admin Console' : 'Data Explorer'}
+            {/* Update this check */}
+            {state.user?.role === "admin" || state.user?.role === "super_admin"
+              ? "Admin Console"
+              : "Data Explorer"}
           </span>
         </div>
       </div>
@@ -35,12 +38,16 @@ export default function Navbar() {
       {/* Right Side Actions */}
       <div className="flex items-center gap-2 md:gap-4">
         {/* Theme Toggle */}
-        <button 
-          onClick={toggleTheme} 
+        <button
+          onClick={toggleTheme}
           className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
           title="Toggle Theme"
         >
-          {state.theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          {state.theme === "light" ? (
+            <Moon className="w-5 h-5" />
+          ) : (
+            <Sun className="w-5 h-5" />
+          )}
         </button>
 
         <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
@@ -61,8 +68,8 @@ export default function Navbar() {
         </div>
 
         {/* Logout Button */}
-        <button 
-          onClick={handleLogout} 
+        <button
+          onClick={handleLogout}
           className="ml-2 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
           title="Sign Out"
         >
@@ -72,4 +79,3 @@ export default function Navbar() {
     </nav>
   );
 }
-

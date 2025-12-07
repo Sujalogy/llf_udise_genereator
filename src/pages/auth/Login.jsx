@@ -3,7 +3,7 @@
 // ============================================================================
 import { useStore } from "../../context/StoreContext";
 import { useState } from "react";
-import { Database, Loader2, ArrowRight } from "lucide-react";
+import { Database, Loader2, ArrowRight, Mail } from "lucide-react";
 import ACTIONS from "../../context/actions";
 
 const LoginPage = () => {
@@ -18,36 +18,75 @@ const LoginPage = () => {
     
     // Simulate API Login Delay
     setTimeout(() => {
-      // Simple Role Logic: "admin" in email -> Admin Role
-      const role = email.toLowerCase().includes("admin") ? "admin" : "user";
+      let role = "user";
+      const lowerEmail = email.toLowerCase();
+
+      // Specific Role Logic
+      if (lowerEmail === "sujal@languageandlearningfoundation.org") {
+        role = "super_admin"; // Or 'admin' based on your routing
+      } else if (lowerEmail.endsWith("@languageandlearningfoundation.org")) {
+        role = "user";
+      } else if (lowerEmail.includes("admin")) {
+        role = "admin"; // Fallback for demo
+      }
+
       dispatch({ type: ACTIONS.LOGIN, payload: { email, role } });
       setLoading(false);
-    }, 1000);
+    }, 800);
+  };
+
+  const handleGoogleLogin = () => {
+    // Mock Google Login
+    setEmail("sujal@languageandlearningfoundation.org");
+    // Trigger the form submission logic
+    document.getElementById("loginForm").requestSubmit();
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900 px-4">
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl shadow-blue-900/5 w-full max-w-sm border border-gray-100 dark:border-gray-700">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 px-4">
+      <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-2xl w-full max-w-[400px] border border-white/20">
         
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 bg-blue-600 rounded-xl mb-4 shadow-lg shadow-blue-500/30 text-white">
+          <div className="inline-flex p-4 bg-white rounded-2xl mb-4 shadow-lg text-indigo-600">
             <Database className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Welcome Back</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Sign in to access UDISE Portal</p>
+          <h1 className="text-2xl font-black text-gray-800 tracking-tight">Welcome Back</h1>
+          <p className="text-sm font-medium text-gray-500 mt-2">UDISE Data Intelligence Portal</p>
+        </div>
+
+        {/* Google Auth Button */}
+        <button 
+          onClick={handleGoogleLogin}
+          className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-3 mb-6 shadow-sm group"
+        >
+          <img 
+            src="https://www.svgrepo.com/show/475656/google-color.svg" 
+            alt="Google" 
+            className="w-5 h-5"
+          />
+          <span className="group-hover:text-gray-900">Continue with Google</span>
+        </button>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-400">Or continue with email</span>
+          </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
+        <form id="loginForm" onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1.5 relative">
+            <Mail className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
-              placeholder="name@organization.com"
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium placeholder:text-gray-400"
+              placeholder="name@work-email.com"
               required
             />
           </div>
@@ -55,28 +94,28 @@ const LoginPage = () => {
           <button 
             type="submit" 
             disabled={loading} 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-3.5 rounded-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl shadow-gray-900/20 disabled:opacity-70"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Sign In <ArrowRight className="w-4 h-4" /></>}
           </button>
         </form>
 
-        {/* Footer Hints */}
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
-          <p className="text-xs text-center text-gray-400 mb-2">Demo Credentials:</p>
-          <div className="flex gap-2 justify-center text-xs font-mono">
-            <span 
-              onClick={() => setEmail("admin@org.com")} 
-              className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50"
+        {/* Demo Hints */}
+        <div className="mt-8 text-center">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Developer Access</p>
+          <div className="flex gap-2 justify-center flex-wrap">
+            <button 
+              onClick={() => setEmail("sujal@languageandlearningfoundation.org")} 
+              className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition-colors"
             >
-              admin@org.com
-            </span>
-            <span 
-              onClick={() => setEmail("user@org.com")} 
-              className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-200"
+              Super Admin
+            </button>
+            <button 
+              onClick={() => setEmail("staff@languageandlearningfoundation.org")} 
+              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
             >
-              user@org.com
-            </span>
+              Staff User
+            </button>
           </div>
         </div>
       </div>
