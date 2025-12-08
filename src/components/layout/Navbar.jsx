@@ -11,7 +11,24 @@ export default function Navbar() {
     dispatch({ type: ACTIONS.SET_THEME, payload: newTheme });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = localStorage.getItem("authToken");
+
+    // Call logout API
+    try {
+      await fetch("http://localhost:3000/api/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+
+    // Clear local storage
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("tokenExpiry");
+
     dispatch({ type: ACTIONS.LOGOUT });
   };
 
