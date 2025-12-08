@@ -83,7 +83,7 @@ const TopItemsList = ({ title, items, loading, icon: Icon, emptyMessage }) => (
               <span className="text-xs font-bold text-gray-400 w-6">
                 #{index + 1}
               </span>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-gray-400 dark:text-gray-300">
                 {item.name}
               </span>
             </div>
@@ -129,7 +129,7 @@ const DashboardStatsView = () => {
   // ADD THIS FUNCTION
   const fetchFilterOptions = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/filter-options", {
+      const response = await fetch(`${CONFIG.API_BACKEND}/filter-options`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();

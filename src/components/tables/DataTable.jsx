@@ -1,10 +1,11 @@
 // ============================================================================
-// --- FILE: src/components/tables/DataTable.jsx (FIXED)
+// --- FILE: src/components/tables/DataTable.jsx (FINAL)
 // ============================================================================
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
-  ArrowUp, ArrowDown, ArrowUpDown, Filter, Download, Search 
+  ArrowUp, ArrowDown, ArrowUpDown, Filter, Download, Search, 
+  Maximize, Minimize // ADDED Maximize and Minimize
 } from "lucide-react";
 import CONFIG from "../../api/config";
 
@@ -37,34 +38,35 @@ const flattenObject = (obj, prefix = '') => {
 
 // --- OPTIMIZED SUB-COMPONENTS ---
 
-const TableCell = React.memo(({ col, row, isSelected, onClick, rowIndex }) => {
+const TableCell = React.memo(({ col, row }) => {
   const cellValue = row[col.key];
   
   // Safely render content
   const renderContent = () => {
     if (cellValue === null || cellValue === undefined) return <span className="text-gray-300">-</span>;
-    // If it's still an object/array after flattening (shouldn't happen), stringify it
+    // If it's still an object/array after flattening, stringify it
     if (typeof cellValue === 'object') return JSON.stringify(cellValue).substring(0, 50) + "..."; 
     return cellValue;
   };
 
   return (
     <td 
-      data-row={rowIndex}
-      data-col={col.key}
-      onClick={() => onClick(col.key)}
       className={`
-        px-6 py-3 whitespace-nowrap text-sm cursor-cell relative transition-colors duration-75 border-b border-gray-100 dark:border-gray-700
-        ${col.align === 'right' ? 'text-right font-mono' : 'text-gray-700 dark:text-gray-300'}
-        ${isSelected 
-          ? 'bg-blue-600 text-white dark:bg-blue-500 z-10 ring-2 ring-blue-600 dark:ring-blue-400' 
-          : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}
+        px-4 py-2 whitespace-nowrap text-sm relative transition-colors duration-75 
+        border-b border-r border-gray-200 dark:border-gray-700 last:border-r-0
+        ${
+            // MODIFIED: Center align numeric/numeric-like columns
+            col.align === 'center'
+              ? 'text-center font-mono text-gray-800 dark:text-gray-200'
+              : 'text-gray-700 dark:text-gray-300'
+        }
+        hover:bg-gray-50 dark:hover:bg-gray-800/50
       `}
     >
-      {col.key === 'udise_code' && !isSelected ? (
+      {col.key === 'udise_code' ? (
         <span className="font-medium text-blue-600 dark:text-blue-400 font-mono">{renderContent()}</span>
       ) : (
-        <span className={isSelected ? "text-white font-medium" : ""}>
+        <span>
           {renderContent()}
         </span>
       )}
@@ -72,17 +74,24 @@ const TableCell = React.memo(({ col, row, isSelected, onClick, rowIndex }) => {
   );
 });
 
-const TableRow = React.memo(({ row, rowIndex, columns, selectedColKey, onCellClick }) => {
+const TableRow = React.memo(({ row, rowIndex, columns, pageStart }) => {
   return (
-    <tr className="bg-white dark:bg-gray-800 transition-colors">
+    <tr className="bg-white dark:bg-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+      {/* Fixed Row Index Column (Excel-like row header) */}
+      <td
+        className={`
+          px-3 py-2 text-center text-xs font-bold whitespace-nowrap sticky left-0 z-30 
+          border-b border-r border-gray-300 dark:border-gray-600 
+          bg-gray-100 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300 cursor-default
+        `}
+      >
+        {pageStart + rowIndex + 1}
+      </td>
       {columns.map((col) => (
         <TableCell 
           key={`${rowIndex}-${col.key}`}
           row={row}
           col={col}
-          rowIndex={rowIndex}
-          isSelected={selectedColKey === col.key}
-          onClick={onCellClick}
         />
       ))}
     </tr>
@@ -91,7 +100,7 @@ const TableRow = React.memo(({ row, rowIndex, columns, selectedColKey, onCellCli
 
 // --- MAIN COMPONENT ---
 
-const DataTable = ({ data = [] }) => {
+const DataTable = ({ data = [], isFullScreen, toggleFullScreen }) => { // ADDED PROPS
   // Flatten the data first
   const flattenedData = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -103,10 +112,7 @@ const DataTable = ({ data = [] }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = CONFIG?.ITEMS_PER_PAGE || 15;
 
-  const [selectedCell, setSelectedCell] = useState({ row: null, col: null });
-  const tableContainerRef = useRef(null);
-
-  // 1. Column Logic - Now works with flattened data
+  // 1. Column Logic
   const columns = useMemo(() => {
     if (!flattenedData || flattenedData.length === 0) return [];
     const keys = Object.keys(flattenedData[0]);
@@ -122,12 +128,14 @@ const DataTable = ({ data = [] }) => {
       const isNumeric = key.includes('total') || 
                        key.includes('count') || 
                        key.includes('students') || 
-                       typeof flattenedData[0][key] === 'number';
+                       // Check if the value is purely numeric string or actual number
+                       (!isNaN(flattenedData[0][key]) && String(flattenedData[0][key]).trim() !== '');
       
       return { 
         key, 
         label, 
-        align: isNumeric ? "right" : "left", 
+        // CHANGED: Use 'center' alignment for numeric-like values
+        align: isNumeric ? "center" : "left", 
         priority: getColumnPriority(key) 
       };
     });
@@ -142,7 +150,7 @@ const DataTable = ({ data = [] }) => {
     return 100;
   }
 
-  // 2. Data Processing - Use flattened data
+  // 2. Data Processing
   const filteredData = useMemo(() => {
     if (!searchTerm) return flattenedData;
     const term = searchTerm.toLowerCase();
@@ -169,8 +177,9 @@ const DataTable = ({ data = [] }) => {
 
   // 3. Pagination
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  const pageStart = (currentPage - 1) * itemsPerPage; 
   const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
+    const start = pageStart;
     return sortedData.slice(start, start + itemsPerPage);
   }, [sortedData, currentPage, itemsPerPage]);
 
@@ -192,48 +201,8 @@ const DataTable = ({ data = [] }) => {
     link.click();
   };
 
-  // --- KEYBOARD NAVIGATION ---
-  const handleCellClick = useCallback((rowIndex, colKey) => {
-    setSelectedCell({ row: rowIndex, col: colKey });
-    tableContainerRef.current?.focus();
-  }, []);
-
-  const handleKeyDown = (e) => {
-    if (selectedCell.row === null || selectedCell.col === null) return;
-    
-    const { row, col } = selectedCell;
-    const colIndex = columns.findIndex(c => c.key === col);
-    
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
-
-    let nextRow = row;
-    let nextColIndex = colIndex;
-
-    if (e.key === 'ArrowUp') nextRow = Math.max(0, row - 1);
-    else if (e.key === 'ArrowDown') nextRow = Math.min(paginatedData.length - 1, row + 1);
-    else if (e.key === 'ArrowLeft') nextColIndex = Math.max(0, colIndex - 1);
-    else if (e.key === 'ArrowRight') nextColIndex = Math.min(columns.length - 1, colIndex + 1);
-
-    if (nextRow !== row || nextColIndex !== colIndex) {
-      setSelectedCell({ row: nextRow, col: columns[nextColIndex].key });
-    }
-  };
-
-  // --- SCROLL SYNC ---
-  useEffect(() => {
-    if (selectedCell.row !== null && tableContainerRef.current) {
-      const el = tableContainerRef.current.querySelector(
-        `[data-row="${selectedCell.row}"][data-col="${selectedCell.col}"]`
-      );
-      if (el) {
-        el.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
-      }
-    }
-  }, [selectedCell]);
-
   useEffect(() => { 
     setCurrentPage(1); 
-    setSelectedCell({ row: null, col: null }); 
   }, [data, searchTerm]);
 
   if (!data || data.length === 0) return (
@@ -244,7 +213,7 @@ const DataTable = ({ data = [] }) => {
   );
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className={`flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 ${isFullScreen ? 'h-screen' : 'h-full'}`}>
       
       {/* Toolbar */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-between items-center bg-gray-50/50 dark:bg-gray-900/20">
@@ -262,6 +231,19 @@ const DataTable = ({ data = [] }) => {
           <span>{filteredData.length} Rows</span>
           <span className="text-gray-300">|</span>
           <span>{columns.length} Columns</span>
+          
+          {/* Fullscreen Button */}
+          {toggleFullScreen && (
+            <button 
+              onClick={toggleFullScreen} 
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-gray-600 dark:text-gray-300"
+              title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              {isFullScreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+          )}
+
+          {/* Download Button */}
           <button onClick={exportCSV} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-gray-600 dark:text-gray-300">
             <Download className="w-4 h-4" />
           </button>
@@ -270,22 +252,25 @@ const DataTable = ({ data = [] }) => {
 
       {/* Table Area */}
       <div 
-        className="flex-1 overflow-auto relative no-scrollbar outline-none" 
-        tabIndex={0} 
-        onKeyDown={handleKeyDown}
-        ref={tableContainerRef}
+        className="flex-1 overflow-auto relative outline-none" 
       >
         <table className="w-full text-sm text-left border-collapse">
           {/* Header */}
           <thead className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase bg-gray-300 dark:bg-gray-900 sticky top-0 z-20 shadow-md">
             <tr>
+              {/* Fixed Row Index Header */}
+              <th className="px-3 py-3 font-semibold text-center sticky left-0 z-40 bg-gray-400 dark:bg-gray-700/90 border-r border-b border-gray-400 dark:border-gray-600">
+                #
+              </th>
               {columns.map((col) => (
                 <th 
                   key={col.key} 
                   onClick={() => handleSort(col.key)} 
-                  className="px-6 py-3 cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-800 whitespace-nowrap"
+                  className="px-4 py-3 cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-800 whitespace-nowrap border-b border-r border-gray-400 dark:border-gray-700 last:border-r-0"
                 >
-                  <div className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : ''}`}>
+                  <div className={`flex items-center gap-1 
+                    ${col.align === 'center' ? 'justify-center' : 'justify-start'} // USED CENTER ALIGNMENT
+                  `}>
                     {col.label}
                     <span className="text-gray-600 dark:text-gray-400">
                       {sortConfig.key === col.key ? (
@@ -301,15 +286,14 @@ const DataTable = ({ data = [] }) => {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+          <tbody>
             {paginatedData.map((row, idx) => (
               <TableRow 
                 key={idx}
                 row={row}
                 rowIndex={idx}
                 columns={columns}
-                selectedColKey={selectedCell.row === idx ? selectedCell.col : null}
-                onCellClick={(colKey) => handleCellClick(idx, colKey)}
+                pageStart={pageStart}
               />
             ))}
           </tbody>

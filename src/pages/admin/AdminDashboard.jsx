@@ -148,7 +148,7 @@ const DataSyncView = () => {
 
   useEffect(() => {
     apiClient
-      .get(`${CONFIG.API_PROXY}/master/year`, { year: 0 })
+      .get(`${CONFIG.API_PROXY}/master/year`, { year: 1 })
       .then((res) => {
         if (res.status && res.data) {
           setYears(res.data);

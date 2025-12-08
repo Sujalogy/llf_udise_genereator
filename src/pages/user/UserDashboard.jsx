@@ -1,8 +1,8 @@
 // ============================================================================
-// --- FILE: src/pages/user/UserDashboard.jsx ---
+// --- FILE: src/pages/user/UserDashboard.jsx (MODIFIED FOR FULLSCREEN) ---
 // ============================================================================
 import { useEffect, useMemo, useState } from "react";
-import { LayoutGrid, Menu, Loader2, ChevronRight, Check, CheckCircle, BarChart3 } from "lucide-react";
+import { LayoutGrid, Menu, Loader2, ChevronRight, Check, CheckCircle, BarChart3, Maximize, Minimize } from "lucide-react";
 import apiClient from "../../api/apiClient";
 import CONFIG from "../../api/config";
 import DataTable from "../../components/tables/DataTable";
@@ -13,7 +13,20 @@ import DashboardStatsView from "../admin/DashboardStatsView";
 const UserDashboard = () => {
   const { state, dispatch } = useStore();
   const [activeTab, setActiveTab] = useState("table"); // "table" or "statistics"
+  const [isFullScreen, setIsFullScreen] = useState(false); // ADDED FULLSCREEN STATE
   
+  // TOGGLE FUNCTION
+  const toggleFullScreen = () => {
+    setIsFullScreen(prev => {
+        const newState = !prev;
+        // Optionally close sidebar when entering fullscreen
+        if (newState && state.sidebarOpen) {
+            dispatch({ type: ACTIONS.TOGGLE_SIDEBAR });
+        }
+        return newState;
+    });
+  };
+
   // 1. Initial Load: Fetch Filters
   useEffect(() => {
     const loadFilters = async () => {
@@ -74,9 +87,10 @@ const UserDashboard = () => {
   }, [state.selectedState, state.selectedDistricts]);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-      {/* Primary Sidebar (States) */}
-      <aside className={`flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${state.sidebarOpen ? 'w-64' : 'w-0 opacity-0'}`}>
+    // CONDITIONAL CLASS: Remove fixed height when in fullscreen (h-full is used)
+    <div className={`flex ${isFullScreen ? 'h-full' : 'h-[calc(100vh-64px)]'} overflow-hidden`}>
+      {/* Primary Sidebar (States) - HIDDEN IN FULLSCREEN */}
+      <aside className={`flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${state.sidebarOpen && !isFullScreen ? 'w-64 opacity-100' : 'w-0 opacity-0'}`}>
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> Locations</h2>
         </div>
@@ -89,8 +103,8 @@ const UserDashboard = () => {
         </div>
       </aside>
 
-      {/* Secondary Sidebar (Districts) */}
-      {state.selectedState && (
+      {/* Secondary Sidebar (Districts) - HIDDEN IN FULLSCREEN */}
+      {state.selectedState && !isFullScreen && (
         <aside className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col animate-in slide-in-from-left-10 duration-200">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <h3 className="font-semibold text-gray-800 dark:text-white">Districts</h3>
@@ -146,7 +160,8 @@ const UserDashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900/50">
-        <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
+        {/* HEADER IS HIDDEN IN FULLSCREEN MODE */}
+        <header className={`h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 ${isFullScreen ? 'hidden' : 'flex'}`}>
           <div className="flex items-center gap-4">
             <button onClick={() => dispatch({ type: ACTIONS.TOGGLE_SIDEBAR })} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"><Menu className="w-5 h-5" /></button>
             <div>
@@ -165,38 +180,13 @@ const UserDashboard = () => {
                 {activeData.length} Records
               </div>
             )}
-            
-            {/* Tab Switcher */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-              <button
-                onClick={() => setActiveTab("table")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  activeTab === "table"
-                    ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                Table View
-              </button>
-              <button
-                onClick={() => setActiveTab("statistics")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  activeTab === "statistics"
-                    ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                }`}
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                Statistics
-              </button>
-            </div>
           </div>
         </header>
 
         <div className="flex-1 overflow-hidden">
           {activeTab === "table" ? (
-            <div className="h-full p-6">
+            // CONDITIONAL PADDING: Remove padding when in fullscreen mode
+            <div className={`h-full ${isFullScreen ? 'p-0' : 'p-6'}`}>
               {state.loading ? (
                 <div className="h-full flex flex-col items-center justify-center text-blue-600 dark:text-blue-400">
                   <Loader2 className="w-10 h-10 animate-spin mb-4" />
@@ -209,7 +199,11 @@ const UserDashboard = () => {
                   <p className="text-sm">Please select a State from the sidebar.</p>
                 </div>
               ) : (
-                <DataTable data={activeData} />
+                <DataTable 
+                  data={activeData} 
+                  isFullScreen={isFullScreen} // PASSED PROP
+                  toggleFullScreen={toggleFullScreen} // PASSED PROP
+                />
               )}
             </div>
           ) : (

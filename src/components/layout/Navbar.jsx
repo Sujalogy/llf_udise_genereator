@@ -2,6 +2,7 @@ import React from "react";
 import { Database, LogOut, Sun, Moon } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import ACTIONS from "../../context/actions";
+import CONFIG from "../../api/config";
 
 export default function Navbar() {
   const { state, dispatch } = useStore();
@@ -16,7 +17,7 @@ export default function Navbar() {
 
     // Call logout API
     try {
-      await fetch("http://localhost:3000/api/auth/logout", {
+      await fetch(`${CONFIG.API_BACKEND}/api/auth/logout`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
