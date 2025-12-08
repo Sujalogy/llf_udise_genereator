@@ -1,5 +1,5 @@
 // ============================================================================
-// --- FILE: src/pages/admin/AdminDashboard.jsx (FIXED SCROLL) ---
+// --- FILE: src/pages/admin/AdminDashboard.jsx (FIXED & FULL) ---
 // ============================================================================
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
@@ -40,62 +40,89 @@ import {
 } from "../../utils/udiseHelpers";
 
 // --- STATS BADGE COMPONENT ---
-const StatBadge = ({ icon: Icon, label, value, color = "blue", pulse = false }) => (
-  <div className={`flex items-center gap-2 px-4 py-2 bg-${color}-50 dark:bg-${color}-900/20 border border-${color}-200 dark:border-${color}-800 rounded-lg`}>
-    <div className={`p-1.5 rounded ${pulse ? 'animate-pulse' : ''}`}>
+const StatBadge = ({
+  icon: Icon,
+  label,
+  value,
+  color = "blue",
+  pulse = false,
+}) => (
+  <div
+    className={`flex items-center gap-2 px-4 py-2 bg-${color}-50 dark:bg-${color}-900/20 border border-${color}-200 dark:border-${color}-800 rounded-lg`}
+  >
+    <div className={`p-1.5 rounded ${pulse ? "animate-pulse" : ""}`}>
       <Icon className={`w-4 h-4 text-${color}-600 dark:text-${color}-400`} />
     </div>
     <div className="flex flex-col">
-      <span className={`text-xs font-medium text-${color}-600 dark:text-${color}-400 uppercase tracking-wider`}>
+      <span
+        className={`text-xs font-medium text-${color}-600 dark:text-${color}-400 uppercase tracking-wider`}
+      >
         {label}
       </span>
-      <span className={`text-lg font-bold text-${color}-700 dark:text-${color}-300`}>
-        {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+      <span
+        className={`text-lg font-bold text-${color}-700 dark:text-${color}-300`}
+      >
+        {typeof value === "number" ? value.toLocaleString("en-IN") : value}
       </span>
     </div>
   </div>
 );
 
-// --- MODERN LOG ENTRY COMPONENT ---
+// --- LOG ENTRY COMPONENT ---
 const LogEntry = ({ log, index }) => {
   const getLogIcon = (type) => {
     switch (type) {
-      case "success": return <CheckCircle2 className="w-3.5 h-3.5" />;
-      case "error": return <AlertTriangle className="w-3.5 h-3.5" />;
-      case "info": return <Terminal className="w-3.5 h-3.5" />;
-      default: return <Terminal className="w-3.5 h-3.5" />;
+      case "success":
+        return <CheckCircle2 className="w-3.5 h-3.5" />;
+      case "error":
+        return <AlertTriangle className="w-3.5 h-3.5" />;
+      case "info":
+        return <Terminal className="w-3.5 h-3.5" />;
+      default:
+        return <Terminal className="w-3.5 h-3.5" />;
     }
   };
 
   const getLogStyle = (type) => {
     switch (type) {
-      case "success": return "text-green-400 bg-green-500/10";
-      case "error": return "text-red-400 bg-red-500/10";
-      case "info": return "text-blue-400 bg-blue-500/10";
-      default: return "text-gray-400 bg-gray-500/10";
+      case "success":
+        return "text-green-400 bg-green-500/10";
+      case "error":
+        return "text-red-400 bg-red-500/10";
+      case "info":
+        return "text-blue-400 bg-blue-500/10";
+      default:
+        return "text-gray-400 bg-gray-500/10";
     }
   };
 
   return (
-    <div className={`flex gap-3 items-start p-2 rounded-md hover:bg-gray-800/50 transition-colors animate-in slide-in-from-left-2 duration-200`} style={{ animationDelay: `${index * 20}ms` }}>
+    <div
+      className={`flex gap-3 items-start p-2 rounded-md hover:bg-gray-800/50 transition-colors animate-in slide-in-from-left-2 duration-200`}
+      style={{ animationDelay: `${index * 20}ms` }}
+    >
       <span className="text-gray-600 text-[10px] font-mono shrink-0 w-20 pt-1">
         [{log.time}]
       </span>
       <div className={`p-1 rounded ${getLogStyle(log.type)}`}>
         {getLogIcon(log.type)}
       </div>
-      <span className={`flex-1 text-sm leading-relaxed ${
-        log.type === "error" ? "text-red-400 font-medium" :
-        log.type === "success" ? "text-green-400" :
-        "text-gray-300"
-      }`}>
+      <span
+        className={`flex-1 text-sm leading-relaxed ${
+          log.type === "error"
+            ? "text-red-400 font-medium"
+            : log.type === "success"
+            ? "text-green-400"
+            : "text-gray-300"
+        }`}
+      >
         {log.msg}
       </span>
     </div>
   );
 };
 
-// --- DataSyncView Component (Enhanced) ---
+// --- DATA SYNC VIEW COMPONENT ---
 const DataSyncView = () => {
   const [years, setYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState("");
@@ -111,6 +138,9 @@ const DataSyncView = () => {
   const [sampleData, setSampleData] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [allCodes, setAllCodes] = useState([]);
+
+  // NEW: State to store ONLY the codes that need processing
+  const [codesToProcess, setCodesToProcess] = useState([]);
 
   const logsEndRef = useRef(null);
   const pausedRef = useRef(false);
@@ -138,7 +168,8 @@ const DataSyncView = () => {
       { msg, type, time: new Date().toLocaleTimeString() },
     ]);
 
-  const fetchSingleBatch = async (codesChunk, yearId) => {
+  // 1. UPDATE: Accept yearString to force 'ay' value
+  const fetchSingleBatch = async (codesChunk, yearId, yearString) => {
     const promises = codesChunk.map(async (udiseCode) => {
       try {
         const API_BASE = CONFIG.API_PROXY;
@@ -150,10 +181,15 @@ const DataSyncView = () => {
 
         const schoolInfo = searchRes.data.content[0];
         const schoolId = schoolInfo.schoolId;
+        
+        // 2. FORCE 'ay' to ensure consistent DB unique check
         const result = {
           udise_code: udiseCode,
+          ay: yearString,
           ...transformData(schoolInfo, COLUMN_MAPPING["search-schools"]),
         };
+        // Explicitly overwrite in case transformData mapped something else
+        result.ay = yearString; 
 
         const fetchSafe = (url) => apiClient.get(url).catch(() => ({}));
         const [
@@ -282,29 +318,64 @@ const DataSyncView = () => {
       setAllCodes(codes);
       setTotalRecords(codes.length);
 
-      addLog(`✅ Successfully extracted ${codes.length.toLocaleString('en-IN')} UDISE codes`, "success");
-      addLog(`🔍 Checking for existing records in database...`, "info");
+      addLog(
+        `✅ Extracted ${codes.length.toLocaleString("en-IN")} UDISE codes`,
+        "success"
+      );
 
-      const existingRes = await apiClient.post(`${CONFIG.API_BACKEND}/check-existing`, { codes });
-      const existingCodes = new Set(existingRes.existing || []);
-      const duplicates = codes.filter(c => existingCodes.has(c)).length;
-      const newEntries = codes.length - duplicates;
+      // --- NEW LOGIC: FILTER BY YEAR ---
+      // 1. Get Year String
+      const selectedYearObj = years.find((y) => y.yearId == selectedYear);
+      const yearString = selectedYearObj ? selectedYearObj.yearDesc : "";
 
+      addLog(`🔍 Checking DB for existing records in ${yearString}...`, "info");
+
+      // 2. Call API with Year
+      const existingRes = await apiClient.post(
+        `${CONFIG.API_BACKEND}/check-existing`,
+        {
+          codes,
+          ay: yearString,
+        }
+      );
+
+      const existingSet = new Set(existingRes.existing || []);
+
+      // 3. Filter LOCALLY
+      const pending = codes.filter((c) => !existingSet.has(c));
+      setCodesToProcess(pending); // Store ONLY the ones we will fetch
+
+      const duplicates = codes.length - pending.length;
       setDuplicateCount(duplicates);
-      setNewEntriesCount(newEntries);
+      setNewEntriesCount(pending.length);
 
       addLog(`📊 Analysis Complete:`, "success");
-      addLog(`   • New Records: ${newEntries.toLocaleString('en-IN')}`, "info");
-      addLog(`   • Duplicates (Skip): ${duplicates.toLocaleString('en-IN')}`, "info");
-      addLog(`🎯 Fetching sample data for preview...`, "info");
-
-      const sampleBatch = await fetchSingleBatch(
-        codes.slice(0, 10),
-        selectedYear
+      addLog(
+        `   • New Records to Fetch: ${pending.length.toLocaleString("en-IN")}`,
+        "info"
       );
-      setSampleData(sampleBatch);
-      setShowPreview(true);
-      setStatus("ready_to_sync");
+      addLog(
+        `   • Existing in DB (Skipped): ${duplicates.toLocaleString("en-IN")}`,
+        "info"
+      );
+
+      if (pending.length > 0) {
+        addLog(`🎯 Fetching sample data from NEW records...`, "info");
+        const sampleBatch = await fetchSingleBatch(
+          pending.slice(0, 10),
+          selectedYear,
+          yearString // Pass yearString to sample fetch
+        );
+        setSampleData(sampleBatch);
+        setShowPreview(true);
+        setStatus("ready_to_sync");
+      } else {
+        addLog(
+          `🎉 All records already exist for this year! Nothing to do.`,
+          "success"
+        );
+        setStatus("idle");
+      }
     } catch (e) {
       console.error(e);
       addLog(`❌ File Error: ${e.message || e}`, "error");
@@ -321,13 +392,27 @@ const DataSyncView = () => {
     setSuccessCount(0);
     setProgress(0);
     setLogs([]);
-    setDuplicateCount(0);
+    setDuplicateCount(0); // Reset for visual consistency
+
+    // IMPORTANT: Use filtered list
+    const totalToSync = codesToProcess.length;
+
+    if (totalToSync === 0) {
+      addLog("✅ No new records to sync.", "success");
+      setStatus("idle");
+      return;
+    }
 
     addLog(
-      `🚀 Starting Batch Sync for ${totalRecords.toLocaleString('en-IN')} records...`,
+      `🚀 Starting Batch Sync for ${totalToSync.toLocaleString(
+        "en-IN"
+      )} NEW records...`,
       "info"
     );
-    addLog(`⚡ Expected New Entries: ${newEntriesCount.toLocaleString('en-IN')}`, "info");
+    
+    // Get yearString again for the loop
+    const selectedYearObj = years.find((y) => y.yearId == selectedYear);
+    const yearString = selectedYearObj ? selectedYearObj.yearDesc : "";
 
     const CHUNK_SIZE = 20;
     const BATCH_SIZE = 100;
@@ -335,10 +420,10 @@ const DataSyncView = () => {
     let buffer = [];
     let processed = 0;
     let saved = 0;
-    let skipped = 0;
 
     try {
-      for (let i = 0; i < allCodes.length; i += CHUNK_SIZE) {
+      // Loop ONLY through codesToProcess
+      for (let i = 0; i < totalToSync; i += CHUNK_SIZE) {
         if (cancelRef.current) {
           addLog("⛔ Sync Cancelled by User", "error");
           break;
@@ -348,11 +433,13 @@ const DataSyncView = () => {
           if (cancelRef.current) break;
         }
 
-        const chunkCodes = allCodes.slice(i, i + CHUNK_SIZE);
-        const fetchedData = await fetchSingleBatch(chunkCodes, selectedYear);
+        const chunkCodes = codesToProcess.slice(i, i + CHUNK_SIZE);
+        
+        // Pass yearString here
+        const fetchedData = await fetchSingleBatch(chunkCodes, selectedYear, yearString);
         buffer = [...buffer, ...fetchedData];
 
-        if (buffer.length >= BATCH_SIZE || i + CHUNK_SIZE >= allCodes.length) {
+        if (buffer.length >= BATCH_SIZE || i + CHUNK_SIZE >= totalToSync) {
           if (buffer.length > 0) {
             const saveRes = await apiClient.post(
               `${CONFIG.API_BACKEND}/save-schools`,
@@ -360,16 +447,14 @@ const DataSyncView = () => {
             );
             if (saveRes.success) {
               const actualSaved = saveRes.count || 0;
-              const actualSkipped = buffer.length - actualSaved;
-              
               saved += actualSaved;
-              skipped += actualSkipped;
-              
               setSuccessCount(saved);
-              setDuplicateCount(skipped);
-              
-              if (saved % 500 === 0 || saved + skipped === totalRecords) {
-                addLog(`💾 Progress: ${saved.toLocaleString('en-IN')} saved | ${skipped.toLocaleString('en-IN')} duplicates skipped`, "success");
+
+              if (saved % 100 === 0) {
+                addLog(
+                  `💾 Progress: ${saved.toLocaleString("en-IN")} saved`,
+                  "success"
+                );
               }
             }
             buffer = [];
@@ -377,13 +462,20 @@ const DataSyncView = () => {
         }
 
         processed += chunkCodes.length;
-        setProgress((processed / totalRecords) * 100);
+        setProgress((processed / totalToSync) * 100);
       }
-      
+
       addLog(`🎉 Sync Complete!`, "success");
-      addLog(`   • Total Processed: ${processed.toLocaleString('en-IN')}`, "success");
-      addLog(`   • New Records Saved: ${saved.toLocaleString('en-IN')}`, "success");
-      addLog(`   • Duplicates Skipped: ${skipped.toLocaleString('en-IN')}`, "info");
+      addLog(
+        `   • Total Fetched & Saved: ${saved.toLocaleString("en-IN")}`,
+        "success"
+      );
+      addLog(
+        `   • Pre-Skipped Duplicates: ${duplicateCount.toLocaleString(
+          "en-IN"
+        )}`,
+        "info"
+      );
     } catch (e) {
       addLog(`💥 Critical Failure: ${e.message}`, "error");
     } finally {
@@ -474,7 +566,7 @@ const DataSyncView = () => {
                       color="amber"
                     />
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
@@ -519,7 +611,7 @@ const DataSyncView = () => {
                       color="gray"
                     />
                   </div>
-                  
+
                   <button
                     onClick={() => setShowPreview(true)}
                     className="w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
@@ -530,7 +622,8 @@ const DataSyncView = () => {
                     onClick={handleStartStreamSync}
                     className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 transition-all transform active:scale-[0.98]"
                   >
-                    <Zap className="w-5 h-5" /> Start Bulk Sync ({totalRecords.toLocaleString('en-IN')})
+                    <Zap className="w-5 h-5" /> Start Bulk Sync (
+                    {newEntriesCount.toLocaleString("en-IN")})
                   </button>
                 </div>
               ) : (
@@ -541,7 +634,8 @@ const DataSyncView = () => {
                 >
                   {status === "analyzing" ? (
                     <>
-                      <RefreshCw className="w-5 h-5 animate-spin" /> Analyzing...
+                      <RefreshCw className="w-5 h-5 animate-spin" />{" "}
+                      Analyzing...
                     </>
                   ) : (
                     <>
@@ -565,7 +659,7 @@ const DataSyncView = () => {
                 SYSTEM STREAM
               </span>
             </div>
-            
+
             {(status === "analyzing" || status === "syncing") && (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -587,7 +681,9 @@ const DataSyncView = () => {
             {logs.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-gray-600">
                 <Terminal className="w-16 h-16 mb-4 opacity-20" />
-                <p className="text-sm font-medium">System ready. Awaiting input...</p>
+                <p className="text-sm font-medium">
+                  System ready. Awaiting input...
+                </p>
               </div>
             )}
             {logs.map((log, i) => (
@@ -679,7 +775,9 @@ const DataExplorerView = () => {
 
       <div className="flex-1 overflow-hidden relative flex flex-col">
         {activeExplorerTab === "table" && <UserDashboard key={refreshKey} />}
-        {activeExplorerTab === "charts" && <DashboardStatsView key={refreshKey} />}
+        {activeExplorerTab === "charts" && (
+          <DashboardStatsView key={refreshKey} />
+        )}
       </div>
     </div>
   );
@@ -724,7 +822,7 @@ const AdminDashboard = () => {
               Manage data synchronization, users, and system configuration
             </p>
           </div>
-          
+
           {/* Modern Tab Navigation */}
           <div className="bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 flex shadow-sm flex-shrink-0">
             {[
@@ -744,7 +842,7 @@ const AdminDashboard = () => {
                     : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
                 }`}
               >
-                <tab.icon className="w-4 h-4" /> 
+                <tab.icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
