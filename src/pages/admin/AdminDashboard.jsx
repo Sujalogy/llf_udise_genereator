@@ -1,7 +1,7 @@
 // ============================================================================
-// --- FILE: src/pages/admin/AdminDashboard.jsx (FIXED & FULL) ---
+// --- FILE: src/pages/admin/AdminDashboard.jsx ---
 // ============================================================================
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Upload,
   Play,
@@ -19,7 +19,6 @@ import {
   Zap,
   ArrowBigLeft,
   TrendingUp,
-  Hash,
   Copy,
   AlertTriangle,
 } from "lucide-react";
@@ -28,10 +27,10 @@ import apiClient from "../../api/apiClient";
 import { CONFIG } from "../../api/config";
 import { useStore } from "../../context/StoreContext";
 import ACTIONS from "../../context/actions";
-import UserDashboard from "../user/UserDashboard";
 import UserListView from "./UserListView";
 import BulkPreviewModal from "../../components/common/BulkPreviewModal";
 import DashboardStatsView from "./DashboardStatsView";
+import ExploreView from "../explorer/ExploreView"; // IMPORTED NEW COMPONENT
 import { parseFile } from "../../utils/fileParser";
 import {
   COLUMN_MAPPING,
@@ -139,7 +138,7 @@ const DataSyncView = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [allCodes, setAllCodes] = useState([]);
 
-  // NEW: State to store ONLY the codes that need processing
+  // State to store ONLY the codes that need processing
   const [codesToProcess, setCodesToProcess] = useState([]);
 
   const logsEndRef = useRef(null);
@@ -168,7 +167,6 @@ const DataSyncView = () => {
       { msg, type, time: new Date().toLocaleTimeString() },
     ]);
 
-  // 1. UPDATE: Accept yearString to force 'ay' value
   const fetchSingleBatch = async (codesChunk, yearId, yearString) => {
     const promises = codesChunk.map(async (udiseCode) => {
       try {
@@ -182,7 +180,7 @@ const DataSyncView = () => {
         const schoolInfo = searchRes.data.content[0];
         const schoolId = schoolInfo.schoolId;
         
-        // 2. FORCE 'ay' to ensure consistent DB unique check
+        // FORCE 'ay' to ensure consistent DB unique check
         const result = {
           udise_code: udiseCode,
           ay: yearString,
@@ -323,14 +321,12 @@ const DataSyncView = () => {
         "success"
       );
 
-      // --- NEW LOGIC: FILTER BY YEAR ---
-      // 1. Get Year String
+      // FILTER BY YEAR
       const selectedYearObj = years.find((y) => y.yearId == selectedYear);
       const yearString = selectedYearObj ? selectedYearObj.yearDesc : "";
 
       addLog(`🔍 Checking DB for existing records in ${yearString}...`, "info");
 
-      // 2. Call API with Year
       const existingRes = await apiClient.post(
         `${CONFIG.API_BACKEND}/check-existing`,
         {
@@ -341,9 +337,8 @@ const DataSyncView = () => {
 
       const existingSet = new Set(existingRes.existing || []);
 
-      // 3. Filter LOCALLY
       const pending = codes.filter((c) => !existingSet.has(c));
-      setCodesToProcess(pending); // Store ONLY the ones we will fetch
+      setCodesToProcess(pending); 
 
       const duplicates = codes.length - pending.length;
       setDuplicateCount(duplicates);
@@ -364,7 +359,7 @@ const DataSyncView = () => {
         const sampleBatch = await fetchSingleBatch(
           pending.slice(0, 10),
           selectedYear,
-          yearString // Pass yearString to sample fetch
+          yearString
         );
         setSampleData(sampleBatch);
         setShowPreview(true);
@@ -392,9 +387,8 @@ const DataSyncView = () => {
     setSuccessCount(0);
     setProgress(0);
     setLogs([]);
-    setDuplicateCount(0); // Reset for visual consistency
+    setDuplicateCount(0); 
 
-    // IMPORTANT: Use filtered list
     const totalToSync = codesToProcess.length;
 
     if (totalToSync === 0) {
@@ -410,7 +404,6 @@ const DataSyncView = () => {
       "info"
     );
     
-    // Get yearString again for the loop
     const selectedYearObj = years.find((y) => y.yearId == selectedYear);
     const yearString = selectedYearObj ? selectedYearObj.yearDesc : "";
 
@@ -422,7 +415,6 @@ const DataSyncView = () => {
     let saved = 0;
 
     try {
-      // Loop ONLY through codesToProcess
       for (let i = 0; i < totalToSync; i += CHUNK_SIZE) {
         if (cancelRef.current) {
           addLog("⛔ Sync Cancelled by User", "error");
@@ -435,7 +427,6 @@ const DataSyncView = () => {
 
         const chunkCodes = codesToProcess.slice(i, i + CHUNK_SIZE);
         
-        // Pass yearString here
         const fetchedData = await fetchSingleBatch(chunkCodes, selectedYear, yearString);
         buffer = [...buffer, ...fetchedData];
 
@@ -697,92 +688,18 @@ const DataSyncView = () => {
   );
 };
 
+// --- DATA EXPLORER VIEW WRAPPER ---
 const DataExplorerView = () => {
-  const [activeExplorerTab, setActiveExplorerTab] = useState("table");
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const { state, dispatch } = useStore();
-
-  const cacheKey = useMemo(() => {
-    if (!state.selectedState || state.selectedDistricts.length === 0)
-      return null;
-    return `${state.selectedState}_${state.selectedDistricts
-      .slice()
-      .sort()
-      .join("-")}`;
-  }, [state.selectedState, state.selectedDistricts]);
-
-  const activeData = useMemo(() => {
-    return cacheKey && state.dataCache[cacheKey]
-      ? state.dataCache[cacheKey]
-      : [];
-  }, [cacheKey, state.dataCache]);
-
-  const explorerTabs = [
-    { id: "table", icon: Database, label: "Table View" },
-    { id: "charts", icon: Activity, label: "Analytics" },
-  ];
-
-  const handleRefresh = useCallback(async () => {
-    if (!state.selectedState) return;
-    setRefreshing(true);
-    dispatch({ type: ACTIONS.SET_LOADING, payload: true });
-    try {
-      const res = await apiClient.post(`${CONFIG.API_BACKEND}/schools/search`, {
-        state: state.selectedState,
-        districts: state.selectedDistricts,
-      });
-      dispatch({ type: ACTIONS.CACHE_DATA, key: cacheKey, data: res });
-      setRefreshKey((prev) => prev + 1);
-    } catch (e) {
-      console.error("Refresh failed", e);
-    } finally {
-      setRefreshing(false);
-      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
-    }
-  }, [state.selectedState, state.selectedDistricts, cacheKey, dispatch]);
-
   return (
     <div className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-between items-center flex-shrink-0">
-        <div className="flex items-center gap-1">
-          {explorerTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveExplorerTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeExplorerTab === tab.id
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800"
-                  : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          title="Refresh Data from Server"
-          className={`p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg transition-colors ${
-            refreshing ? "animate-spin text-blue-500" : ""
-          }`}
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-hidden relative flex flex-col">
-        {activeExplorerTab === "table" && <UserDashboard key={refreshKey} />}
-        {activeExplorerTab === "charts" && (
-          <DashboardStatsView key={refreshKey} />
-        )}
+      <div className="flex-1 overflow-hidden relative">
+        <ExploreView isAdmin={true} />
       </div>
     </div>
   );
 };
 
+// --- MAIN ADMIN DASHBOARD ---
 const AdminDashboard = () => {
   const { state, dispatch } = useStore();
   const activeTab = state.adminTab;

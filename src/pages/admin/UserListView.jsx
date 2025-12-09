@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Search, Edit, Trash2, Shield, ShieldAlert, Loader2, CheckCircle, XCircle, RefreshCw } from "lucide-react";
-import CONFIG from "../../api/config";
 
 const UserListView = () => {
   const [users, setUsers] = useState([]);
@@ -27,7 +26,7 @@ const UserListView = () => {
         role: roleFilter
       });
 
-      const response = await fetch(`${CONFIG.API_BACKEND}/users?${params}`, {
+      const response = await fetch(`http://localhost:3000/api/users?${params}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
 
@@ -51,7 +50,7 @@ const UserListView = () => {
 
   const handleUpdateUser = async (userId, updates) => {
     try {
-      const response = await fetch(`${CONFIG.API_BACKEND}/users/${userId}`, {
+      const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -79,7 +78,7 @@ const UserListView = () => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      const response = await fetch(`${CONFIG.API_BACKEND}/users/${userId}`, {
+      const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -106,15 +105,15 @@ const UserListView = () => {
     : users;
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="h-full flex flex-col bg-gray-800 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-700 dark:border-gray-700">
       
-      <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-5 border-b border-gray-700 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-900 dark:bg-gray-900">
         <div className="flex items-center gap-3 flex-1">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full pl-10 pr-3 py-2 border border-gray-600 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100"
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -125,7 +124,7 @@ const UserListView = () => {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="px-3 py-2 border border-gray-600 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100"
           >
             <option value="">All Roles</option>
             <option value="user">User</option>
@@ -144,9 +143,9 @@ const UserListView = () => {
         <button
           onClick={() => fetchUsers()}
           disabled={loading}
-          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="p-2 border border-gray-600 dark:border-gray-600 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-700"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-4 h-4 text-gray-300 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
 
@@ -157,7 +156,7 @@ const UserListView = () => {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0">
+            <thead className="bg-gray-900 dark:bg-gray-900 text-xs uppercase text-gray-400 dark:text-gray-400 sticky top-0">
               <tr>
                 <th className="px-6 py-4 font-semibold text-left">User</th>
                 <th className="px-6 py-4 font-semibold text-left">Role</th>
@@ -166,10 +165,10 @@ const UserListView = () => {
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-700 dark:divide-gray-700">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                  <tr key={user.user_id} className="hover:bg-gray-50 group">
+                  <tr key={user.user_id} className="hover:bg-gray-700 dark:hover:bg-gray-700 group bg-gray-800 dark:bg-gray-800">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {user.profile_picture ? (
@@ -180,8 +179,8 @@ const UserListView = () => {
                           </div>
                         )}
                         <div>
-                          <div className="font-medium text-gray-900">{user.name || "Unnamed"}</div>
-                          <div className="text-xs text-gray-500">{user.email}</div>
+                          <div className="font-medium text-gray-100 dark:text-gray-100">{user.name || "Unnamed"}</div>
+                          <div className="text-xs text-gray-400 dark:text-gray-400">{user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -191,7 +190,7 @@ const UserListView = () => {
                         <select
                           value={editingUser.role}
                           onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                          className="px-2 py-1 border rounded text-xs"
+                          className="px-2 py-1 border border-gray-600 rounded text-xs bg-gray-700 text-gray-100"
                         >
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
@@ -199,9 +198,9 @@ const UserListView = () => {
                         </select>
                       ) : (
                         <span className={`px-2.5 py-1 rounded text-xs font-medium ${
-                          user.role === "super_admin" ? "bg-purple-100 text-purple-700" :
-                          user.role === "admin" ? "bg-blue-100 text-blue-700" :
-                          "bg-gray-100 text-gray-700"
+                          user.role === "super_admin" ? "bg-purple-900/30 text-purple-400" :
+                          user.role === "admin" ? "bg-blue-900/30 text-blue-400" :
+                          "bg-gray-700 text-gray-300"
                         }`}>
                           {user.role.replace("_", " ")}
                         </span>
@@ -213,7 +212,7 @@ const UserListView = () => {
                         <select
                           value={editingUser.status}
                           onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value })}
-                          className="px-2 py-1 border rounded text-xs"
+                          className="px-2 py-1 border border-gray-600 rounded text-xs bg-gray-700 text-gray-100"
                         >
                           <option value="active">Active</option>
                           <option value="inactive">Inactive</option>
@@ -221,33 +220,33 @@ const UserListView = () => {
                         </select>
                       ) : (
                         <span className={`px-2.5 py-1 rounded-full text-xs ${
-                          user.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          user.status === "active" ? "bg-green-900/30 text-green-400" : "bg-red-900/30 text-red-400"
                         }`}>
                           {user.status}
                         </span>
                       )}
                     </td>
 
-                    <td className="px-6 py-4 text-gray-500 text-xs">
+                    <td className="px-6 py-4 text-gray-400 dark:text-gray-400 text-xs">
                       {user.last_login ? new Date(user.last_login).toLocaleDateString() : "Never"}
                     </td>
 
                     <td className="px-6 py-4 text-right">
                       {editingUser?.user_id === user.user_id ? (
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => handleUpdateUser(user.user_id, { role: editingUser.role, status: editingUser.status })} className="p-1.5 text-green-600 hover:bg-green-50 rounded">
+                          <button onClick={() => handleUpdateUser(user.user_id, { role: editingUser.role, status: editingUser.status })} className="p-1.5 text-green-400 hover:bg-green-900/30 rounded">
                             <CheckCircle className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setEditingUser(null)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                          <button onClick={() => setEditingUser(null)} className="p-1.5 text-red-400 hover:bg-red-900/30 rounded">
                             <XCircle className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100">
-                          <button onClick={() => setEditingUser(user)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                          <button onClick={() => setEditingUser(user)} className="p-1.5 text-blue-400 hover:bg-blue-900/30 rounded">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDeleteUser(user.user_id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                          <button onClick={() => handleDeleteUser(user.user_id)} className="p-1.5 text-red-400 hover:bg-red-900/30 rounded">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -267,13 +266,13 @@ const UserListView = () => {
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-gray-200 flex justify-between text-xs text-gray-500">
+      <div className="px-6 py-4 border-t border-gray-700 dark:border-gray-700 flex justify-between text-xs text-gray-400 dark:text-gray-400 bg-gray-900 dark:bg-gray-900">
         <div>Page {page} of {totalPages}</div>
         <div className="flex gap-2">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded disabled:opacity-50">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border border-gray-600 rounded disabled:opacity-50 hover:bg-gray-700">
             Previous
           </button>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded disabled:opacity-50">
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border border-gray-600 rounded disabled:opacity-50 hover:bg-gray-700">
             Next
           </button>
         </div>

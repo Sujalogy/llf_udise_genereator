@@ -1,5 +1,5 @@
 // ============================================================================
-// --- FRONTEND: src/pages/admin/DashboardStatsView.jsx ---
+// --- FILE: src/pages/admin/DashboardStatsView.jsx ---
 // ============================================================================
 import React, { useState, useEffect } from "react";
 import {
@@ -8,7 +8,6 @@ import {
   Building2,
   Map,
   Users,
-  TrendingUp,
   Database,
   Activity,
   BarChart3,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import apiClient from "../../api/apiClient";
 import CONFIG from "../../api/config";
+import { useStore } from "../../context/StoreContext"; // Import Global Store
 
 const StatCard = ({ icon: Icon, label, value, subtext, color, loading }) => (
   <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all">
@@ -102,12 +102,14 @@ const TopItemsList = ({ title, items, loading, icon: Icon, emptyMessage }) => (
   </div>
 );
 
-const DashboardStatsView = () => {
+const DashboardStatsView = ({ initialFilters = {} }) => {
+  const { state: globalState } = useStore(); // Get Global Store
+  
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [filters, setFilters] = useState({
-    state: "",
+    state: initialFilters.state || "",
     district: "",
     block: "",
     ay: "",
@@ -121,12 +123,40 @@ const DashboardStatsView = () => {
 
   const token = localStorage.getItem("authToken");
 
+  // 1. Initial Load
   useEffect(() => {
     fetchFilterOptions();
-    fetchStats();
+    fetchStats(filters);
   }, []);
 
-  // ADD THIS FUNCTION
+  // 2. Sync with Global Sidebar Selection (ExploreView)
+  useEffect(() => {
+    // If global state has a selected state, and it differs from our local filter
+    if (globalState.selectedState !== undefined && globalState.selectedState !== filters.state) {
+      const newState = globalState.selectedState || "";
+      
+      // Update local state
+      setFilters(prev => ({
+        ...prev,
+        state: newState,
+        district: "", // Reset district when state changes via sidebar
+        block: ""
+      }));
+
+      // Trigger Fetch immediately for the new state
+      const newFilters = { ...filters, state: newState, district: "", block: "" };
+      fetchStats(newFilters);
+
+      // Fetch district options for the new state
+      if (newState) {
+        fetchDistrictOptions(newState);
+      } else {
+        // If cleared, reset district options
+        setFilterOptions(prev => ({ ...prev, districts: [], blocks: [] }));
+      }
+    }
+  }, [globalState.selectedState]);
+
   const fetchFilterOptions = async () => {
     try {
       const response = await fetch(`${CONFIG.API_BACKEND}/filter-options`, {
@@ -146,10 +176,32 @@ const DashboardStatsView = () => {
     }
   };
 
+  // Helper to fetch districts specifically (used when syncing with sidebar)
+  const fetchDistrictOptions = async (stateName) => {
+    try {
+        const response = await fetch(`${CONFIG.API_BACKEND}/filter-options`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        setFilterOptions((prev) => ({
+            ...prev,
+            districts: data.districtsByState?.[stateName] || [],
+            blocks: [],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch districts:", error);
+    }
+  };
+
   const fetchStats = async (appliedFilters = {}) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams(appliedFilters).toString();
+      // Remove empty keys
+      const cleanFilters = Object.fromEntries(
+        Object.entries(appliedFilters).filter(([_, v]) => v != null && v !== "")
+      );
+      
+      const params = new URLSearchParams(cleanFilters).toString();
       const response = await fetch(
         `${CONFIG.API_BACKEND}/dashboard/stats?${params}`,
         {
@@ -158,6 +210,7 @@ const DashboardStatsView = () => {
       );
       const data = await response.json();
       setStats(data);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch stats:", error);
     } finally {
@@ -165,37 +218,22 @@ const DashboardStatsView = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-  // ADD FILTER HANDLERS
+  // Internal Filter Handlers (for the dropdowns inside the Stats View)
   const handleStateChange = async (state) => {
     setFilters({ ...filters, state, district: "", block: "" });
     if (state) {
-      try {
-        const response = await fetch(
-          `${CONFIG.VITE_API_BACKEND}/filter-options`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const data = await response.json();
-        setFilterOptions((prev) => ({
-          ...prev,
-          districts: data.districtsByState?.[state] || [],
-          blocks: [],
-        }));
-      } catch (error) {
-        console.error("Failed to fetch districts:", error);
-      }
+        fetchDistrictOptions(state);
+    } else {
+        setFilterOptions(prev => ({ ...prev, districts: [], blocks: [] }));
     }
   };
+
   const handleDistrictChange = async (district) => {
     setFilters({ ...filters, district, block: "" });
     if (filters.state && district) {
       try {
         const response = await fetch(
-          `${CONFIG.VITE_API_BACKEND}/filter-options`,
+          `${CONFIG.API_BACKEND}/filter-options`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -211,6 +249,7 @@ const DashboardStatsView = () => {
       }
     }
   };
+
   const exportReport = () => {
     if (!stats) return;
 
@@ -241,40 +280,38 @@ const DashboardStatsView = () => {
     }.json`;
     link.click();
   };
+
   const applyFilters = () => {
-    const applied = {};
-    if (filters.state) applied.state = filters.state;
-    if (filters.district) applied.district = filters.district;
-    if (filters.block) applied.block = filters.block;
-    if (filters.ay) applied.ay = filters.ay;
-    fetchStats(applied);
+    fetchStats(filters);
   };
 
   const resetFilters = () => {
-    setFilters({ state: "", district: "", block: "", ay: "" });
+    const emptyFilters = { state: "", district: "", block: "", ay: "" };
+    setFilters(emptyFilters);
     setFilterOptions((prev) => ({ ...prev, districts: [], blocks: [] }));
-    fetchStats();
+    fetchStats(emptyFilters);
   };
+
   return (
-    <div className="h-full overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900 custom-scrollbar">
+    <div className="p-6 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* ADD FILTER PANEL HERE */}
-        <div className="dark:bg-gray-900 custom-scrollbar rounded-xl p-6 shadow-sm border border-gray-200">
-          <h3 className="font-bold text-gray-200 mb-4 flex items-center gap-2">
+        {/* FILTER PANEL */}
+        <div className="dark:bg-gray-900 custom-scrollbar rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
             <Map className="w-5 h-5 text-blue-600" />
             Filter Dashboard
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 <Map className="w-4 h-4 inline mr-1" />
                 State
               </label>
               <select
                 value={filters.state}
                 onChange={(e) => handleStateChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="">All States</option>
                 {filterOptions.states.map((state) => (
@@ -286,7 +323,7 @@ const DashboardStatsView = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 <MapPin className="w-4 h-4 inline mr-1" />
                 District
               </label>
@@ -294,7 +331,7 @@ const DashboardStatsView = () => {
                 value={filters.district}
                 onChange={(e) => handleDistrictChange(e.target.value)}
                 disabled={!filters.state}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:opacity-50"
               >
                 <option value="">All Districts</option>
                 {filterOptions.districts.map((district) => (
@@ -306,7 +343,7 @@ const DashboardStatsView = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 <Building2 className="w-4 h-4 inline mr-1" />
                 Block
               </label>
@@ -316,7 +353,7 @@ const DashboardStatsView = () => {
                   setFilters({ ...filters, block: e.target.value })
                 }
                 disabled={!filters.district}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:opacity-50"
               >
                 <option value="">All Blocks</option>
                 {filterOptions.blocks.map((block) => (
@@ -328,14 +365,14 @@ const DashboardStatsView = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Academic Year
               </label>
               <select
                 value={filters.ay}
                 onChange={(e) => setFilters({ ...filters, ay: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="">All Years</option>
                 {filterOptions.academicYears.map((year) => (
@@ -356,13 +393,14 @@ const DashboardStatsView = () => {
             </button>
             <button
               onClick={resetFilters}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium flex items-center gap-2"
+              className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium flex items-center gap-2"
             >
               <X className="w-4 h-4" />
               Reset
             </button>
           </div>
         </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -381,9 +419,9 @@ const DashboardStatsView = () => {
               </div>
             )}
             <button
-              onClick={fetchStats}
+              onClick={() => fetchStats(filters)}
               disabled={loading}
-              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
