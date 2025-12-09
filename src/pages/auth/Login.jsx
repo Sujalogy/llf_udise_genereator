@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Database, Loader2, Shield } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import ACTIONS from "../../context/actions";
+import CONFIG from "../../api/config";
 
 const GOOGLE_CLIENT_ID = "744649436990-ao0of92288tsqgjar4vcfr42p46npc44.apps.googleusercontent.com"; // REPLACE THIS
 
@@ -44,7 +45,7 @@ const LoginPage = () => {
     try {
       const userInfo = parseJwt(response.credential);
       
-      const authResponse = await fetch("http://localhost:3000/api/auth/google", {
+      const authResponse = await fetch(`${CONFIG.API_BACKEND}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

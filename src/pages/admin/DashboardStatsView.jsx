@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import apiClient from "../../api/apiClient";
-import { CONFIG } from "../../api/config";
+import CONFIG from "../../api/config";
 
 const StatCard = ({ icon: Icon, label, value, subtext, color, loading }) => (
   <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all">
@@ -151,7 +151,7 @@ const DashboardStatsView = () => {
     try {
       const params = new URLSearchParams(appliedFilters).toString();
       const response = await fetch(
-        `http://localhost:3000/api/dashboard/stats?${params}`,
+        `${CONFIG.API_BACKEND}/dashboard/stats?${params}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -174,7 +174,7 @@ const DashboardStatsView = () => {
     if (state) {
       try {
         const response = await fetch(
-          "http://localhost:3000/api/filter-options",
+          `${CONFIG.VITE_API_BACKEND}/filter-options`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -195,7 +195,7 @@ const DashboardStatsView = () => {
     if (filters.state && district) {
       try {
         const response = await fetch(
-          "http://localhost:3000/api/filter-options",
+          `${CONFIG.VITE_API_BACKEND}/filter-options`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

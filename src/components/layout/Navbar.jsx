@@ -17,7 +17,7 @@ export default function Navbar() {
 
     // Call logout API
     try {
-      await fetch(`${CONFIG.API_BACKEND}/api/auth/logout`, {
+      await fetch(`${CONFIG.API_BACKEND}/auth/logout`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Edit, Trash2, Shield, ShieldAlert, Loader2, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import CONFIG from "../../api/config";
 
 const UserListView = () => {
   const [users, setUsers] = useState([]);
@@ -26,7 +27,7 @@ const UserListView = () => {
         role: roleFilter
       });
 
-      const response = await fetch(`http://localhost:3000/api/users?${params}`, {
+      const response = await fetch(`${CONFIG.API_BACKEND}/users?${params}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
 
@@ -50,7 +51,7 @@ const UserListView = () => {
 
   const handleUpdateUser = async (userId, updates) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+      const response = await fetch(`${CONFIG.API_BACKEND}/users/${userId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -78,7 +79,7 @@ const UserListView = () => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+      const response = await fetch(`${CONFIG.API_BACKEND}/users/${userId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
